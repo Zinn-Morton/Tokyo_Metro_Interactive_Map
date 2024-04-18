@@ -1,0 +1,38 @@
+:root {
+    --background-color: #242424;
+    --purple: #b084cc;
+    --blue: #6ccff6;
+    --green: #18ff8f;
+    --red: #d5573b;
+}
+
+:root {
+    font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+
+    color-scheme: light dark;
+    background-color: var(--background-color);
+}
+
+button {
+    color: black;
+    background-color: var(--blue);
+    border-color: none;
+    border-radius: 5px;
+    border: none;
+    font-size: 1rem;
+}
+
+input,
+textarea {
+    height: 3rem;
+    width: 60%;
+    border: none;
+    border-radius: 5px;
+    padding: 0 7px;
+    font-size: 1rem;
+    resize: none;
+}
+
+textarea {
+    height: 3rem;
+}
