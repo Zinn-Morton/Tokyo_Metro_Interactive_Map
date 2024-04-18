@@ -1,18 +1,85 @@
 const axios = require("axios");
 const jwt = require("jsonwebtoken");
+const lodash = require("lodash");
 
 const Task = require("../models/Task.js");
 const Account = require("../models/Account.js");
 const { StatusCodes } = require("http-status-codes");
 const asyncWrapper = require("../middleware/async.js");
 
-// Gets all stations
+// Gets all unique stations
+// Returns id, geocoords, name in multiple languages, and which lines it connects to
 const getStations = asyncWrapper(async (req, res) => {
-    const response = await axios.get("https://api.odpt.org/api/v4/odpt:Station?odpt:operator=odpt.Operator:TokyoMetro&acl:consumerKey=4b4ca7f614612cbf04b90b6733c624c9991777b50f5a73d36cdd23ad56d9086a");
+    // From https://ckan.odpt.org/en/dataset/r_station-tokyometro/resource/9a17b58f-9258-431b-a006-add6eb0cacc6
+    const response = await axios.get(`https://api.odpt.org/api/v4/odpt:Station?odpt:operator=odpt.Operator:TokyoMetro&acl:consumerKey=${process.env.ODPT_TOKEN}`);
 
-    const data = response.data;
+    // Extracts needed info from response
+    const station_info = response.data.map(item => {
+        const extracted_data = {
+            ids: item['owl:sameAs'],
+            geo: {
+                lat: item[`geo:lat`],
+                long: item[`geo:long`]
+            },
+            name: {
+                en: item[`odpt:stationTitle`].en,
+                ja: item[`odpt:stationTitle`].ja,
+                ko: item[`odpt:stationTitle`].ko,
+                "ja-Hrkt": item[`odpt:stationTitle`]['ja-Hrkt'],
+                "zh-Hans": item[`odpt:stationTitle`][`zh-Hans`],
+                "zh-Hant": item[`odpt:stationTitle`][`zh-Hant`]
+            },
+            railways: item[`odpt:railway`]
+        };
 
-    res.status(StatusCodes.OK).json(data);
+        return extracted_data;
+    });
+
+    // Groups stations
+    const grouped_stations = lodash.groupBy(station_info, "name.en")
+
+    // Unpacks duplicate elements and unpacks the railways it is part of
+    const unique_stations = Object.values(grouped_stations).map(group => {
+        return {
+            ids: group.flatMap(station => station.ids),
+            name: group[0].name,
+            railways: group.flatMap(station => station.railways),
+            geo: group[0].geo,
+        };
+    });
+
+    res.status(StatusCodes.OK).json(unique_stations);
+});
+
+const getLines = asyncWrapper(async (req, res) => {
+    // From https://ckan.odpt.org/en/dataset/r_route-tokyometro/resource/81d953eb-65f8-4dfd-ba99-cd43d41e8b9b
+    const response = await axios.get(`https://api.odpt.org/api/v4/odpt:Railway?odpt:operator=odpt.Operator:TokyoMetro&acl:consumerKey=${process.env.ODPT_TOKEN}`);
+
+    // Extracts needed info from response
+    const line_info = response.data.map(item => {
+        const extracted_data = {
+            id: item['owl:sameAs'],
+            name: {
+                en: item[`odpt:railwayTitle`].en,
+                ja: item[`odpt:railwayTitle`].ja,
+                ko: item[`odpt:railwayTitle`].ko,
+                "zh-Hans": item[`odpt:railwayTitle`][`zh-Hans`],
+                "zh-Hant": item[`odpt:railwayTitle`][`zh-Hant`]
+            },
+            color: item['odpt:color'],
+            code: item['odpt:lineCode'],
+            stationOrder: item['odpt:stationOrder'].map(station => {
+                return {
+                    index: station['odpt:index'],
+                    station: station['odpt:station'],
+                }
+            })
+        };
+
+        return extracted_data;
+    });
+
+    res.status(StatusCodes.OK).json(line_info);
 });
 
 // EVERYTHING BELOW IS A REMNANT LEFT FOR REFERENCE
@@ -100,4 +167,4 @@ const editTask = asyncWrapper(async (req, res) => {
     res.status(StatusCodes.OK).json(edited_task);
 });
 
-module.exports = { getStations };
+module.exports = { getStations, getLines };

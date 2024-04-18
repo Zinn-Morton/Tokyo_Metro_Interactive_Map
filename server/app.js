@@ -15,7 +15,7 @@ app.use(cors({ origin: url }));
 
 // External files
 const connectDB = require("./db/connect.js");
-const tasks = require("./routes/tasks.js");
+const fare = require("./routes/fare.js");
 const errorHandler = require("./middleware/error_handler.js");
 
 // Middleware
@@ -25,7 +25,7 @@ app.use(express.json());
 // app.use(express.static("./public"));
 
 // Tasks router
-app.use("/api/v1/tasks", tasks);
+app.use("/api/v1/fare", fare);
 
 app.use(errorHandler);
 
@@ -36,9 +36,10 @@ app.all("*", (req, res) => {
 
 async function start() {
     try {
-        await connectDB(process.env.MONGO_URI);
+        // Temporarily disabled DB
+        // await connectDB(process.env.MONGO_URI);
 
-        console.log("Connected to database");
+        // console.log("Connected to database");
 
         app.listen(port, "0.0.0.0", () => {
             console.log(`Server listening on port ${port}`);
