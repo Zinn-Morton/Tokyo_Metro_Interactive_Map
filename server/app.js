@@ -15,7 +15,7 @@ app.use(cors({ origin: url }));
 
 // External files
 const connectDB = require("./db/connect.js");
-const fare = require("./routes/fare.js");
+const metroInfo = require("./routes/metroInfo.js");
 const errorHandler = require("./middleware/error_handler.js");
 
 // Middleware
@@ -25,7 +25,7 @@ app.use(express.json());
 // app.use(express.static("./public"));
 
 // Tasks router
-app.use("/api/v1/fare", fare);
+app.use("/api/v1/metroInfo", metroInfo);
 
 app.use(errorHandler);
 

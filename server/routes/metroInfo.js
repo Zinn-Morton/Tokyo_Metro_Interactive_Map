@@ -1,13 +1,12 @@
 const express = require("express");
 
-const { getStations, getLines } = require("../controllers/fare.js");
+const { getInfo } = require("../controllers/metroInfo.js");
 const authMiddleware = require("../middleware/auth.js");
 
 const router = express.Router();
 
 // Base path: /api/v1/fare
-router.get("/getStations", getStations);
-router.get("/getLines", getLines);
+router.get("/getInfo", getInfo);
 
 // Remnant from Task Manager - kept for reference
 // router.post("/signup", signup);

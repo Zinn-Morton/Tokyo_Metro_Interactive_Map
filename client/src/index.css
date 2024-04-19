@@ -1,234 +1,50 @@
 * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-.nav-bar {
-    width: 100%;
-    height: 2rem;
-    min-height: 1.7rem;
-    position: fixed;
-    left: 0;
-    top: 0;
-    background: #4d4d4d;
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
+/* Container */
+
+.site-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
 }
 
-.nav-bar > a {
-    margin-left: 5px;
-    margin-right: auto;
-    color: var(--blue);
+.map-container {
+  display: flex;
+  flex-direction: row;
+  width: 100vw;
+  height: 100vh;
 }
 
-.nav-bar > a:visited {
-    color: #d9a4fa;
+/* Nav stuff */
+
+.site-nav {
+  background-color: var(--purple);
+  height: 5vh;
+  display: flex;
+  align-items: center;
 }
 
-.nav-bar > button {
-    font-size: 1rem;
-    height: 100%;
-    width: 6rem;
-    padding: 0 5px;
-    margin-right: 5px;
+.site-nav > :last-child {
+  padding-right: 12px;
 }
 
-.nav-bar > button:last-of-type {
-    border-top-right-radius: 0;
-    border-bottom-right-radius: 0;
-    margin-right: 0;
+.nav-icon {
+  margin-left: 12px;
+  height: 75%;
 }
 
-.nav-bar .arrow {
-    font-size: 1rem;
+.nav-search {
+  margin-left: auto;
 }
 
-.nav-bar h3,
-.nav-bar h1 {
-    text-shadow: 1px 1px #000000;
-}
+/* Map stuff */
 
-.nav-bar > h1 {
-    margin-right: 5px;
-}
-
-.dropdown-content {
-    position: absolute;
-    z-index: -1;
-    top: 2rem;
-    font-size: 1rem;
-    float: right;
-    clear: right;
-    width: fit-content;
-    background-color: var(--purple);
-    border: 1px solid black;
-    border-bottom-left-radius: 7px;
-}
-
-.dropdown-content h3 {
-    margin: 0 5px;
-    width: auto;
-}
-
-.dropdown-content input {
-    margin: 0 5px;
-    width: 20vw;
-    height: 1.5rem;
-    min-width: 188px;
-}
-
-.dropdown-content button {
-    margin: 5px 0 5px 5px;
-    padding: 5px;
-    display: block;
-}
-
-.dropdown-content .account-status {
-    margin-bottom: 5px;
-}
-
-.dropdown-content .account-success {
-    color: var(--green);
-}
-
-.dropdown-content .account-error {
-    color: var(--red);
-}
-
-.title {
-    text-align: center;
-    margin: 0 auto;
-    margin-top: 2.5rem;
-    text-decoration: underline;
-    text-underline-offset: 0.7rem;
-}
-
-.add-task {
-    width: 50vw;
-    min-width: 400px;
-    text-align: center;
-    background-color: var(--purple);
-    margin: 1rem auto;
-    border-radius: 0.5rem;
-    overflow: auto;
-}
-
-.add-task h2 {
-    margin: 1rem auto;
-    text-shadow: 1px 1px #000000;
-}
-
-.add-task div {
-    margin: 1rem auto;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-#new-task-name {
-    border-radius: 5px 0px 0px 5px;
-    height: 3rem;
-}
-
-#new-task-name:focus,
-textarea {
-    outline: none;
-}
-
-.add-task button {
-    height: 3rem;
-    border-radius: 0px 5px 5px 0px;
-    padding: 0 1rem;
-}
-
-.task-list {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-.task {
-    width: 50vw;
-    min-width: 400px;
-    border-radius: 0.5rem;
-    margin: 0 auto;
-    margin-bottom: 1rem;
-    background-color: var(--purple);
-    display: flex;
-    align-items: center;
-}
-
-.task h3 {
-    margin: 10px auto 10px 10px;
-    text-shadow: 1px 1px #000000;
-    word-wrap: anywhere;
-}
-
-.task > div {
-    min-width: fit-content;
-}
-
-.task button {
-    font-size: 0.8rem;
-    height: 3rem;
-    width: 5rem;
-}
-
-.completed-task h3 {
-    text-decoration: line-through;
-    color: var(--green);
-}
-
-.edit-task {
-    margin: 10px;
-}
-
-.delete-task,
-.edit-task-submit {
-    margin: 10px;
-    margin-left: 0;
-}
-
-.error-text {
-    text-align: center;
-    color: var(--red);
-}
-
-.error-text-div {
-    width: calc(60% + 81px);
-    height: fit-content;
-    background-color: var(--background-color);
-    border-radius: 5px;
-}
-
-.error-text-div h2 {
-    text-shadow: unset;
-    padding: auto;
-}
-
-.completed-checkbox {
-    margin-left: 10px;
-    width: 10%;
-    height: 2rem;
-    flex-shrink: 0;
-}
-
-.edit-task-name {
-    margin: 10px auto;
-}
-
-@media screen and (max-width: 850px) {
-    .add-task,
-    .task {
-        min-width: 300px;
-    }
-
-    .task button {
-        display: block;
-        margin-left: 0;
-        margin-right: 5px;
-        width: 4rem;
-    }
+.map {
+  background-color: var(--background-color);
+  width: 100%;
+  flex: 1;
 }
