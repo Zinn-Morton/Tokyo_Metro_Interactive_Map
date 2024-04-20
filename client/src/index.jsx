@@ -5,21 +5,26 @@ import axios from "axios";
 
 import { jwtDecode } from "jwt-decode";
 
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, Polyline } from "react-leaflet";
 import L from "leaflet";
 
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faTrain, faMagnifyingGlass } from "@fortawesome/free-solid-svg-icons";
+import { faTrain, faMagnifyingGlass, faCircleHalfStroke } from "@fortawesome/free-solid-svg-icons";
 import { faMap } from "@fortawesome/free-regular-svg-icons";
 
 import "leaflet/dist/leaflet.css";
 
 import "./index.css";
 
+import { getStationImg, getLineImg } from "./getMetroImg.jsx";
+import { substringBeforeLastSpace } from "./stringFunc.jsx";
+
 const url = "http://localhost:5000";
 // const url = "https://task-manager-self.fly.dev";
 
 function Index() {
+  const [darkMode, setDarkMode] = useState(true);
+
   const [stations, setStations] = useState([]);
   const [lines, setLines] = useState([]);
   const [fetchInfoError, setFetchInfoError] = useState("");
@@ -45,80 +50,82 @@ function Index() {
     setEnableMap(!enableMap);
   }
 
+  function toggleDarkMode() {
+    setDarkMode(!darkMode);
+  }
+
   return (
     <div className="site-container">
-      <Nav toggleMap={toggleMap} />
+      <Nav toggleMap={toggleMap} darkMode={darkMode} toggleDarkMode={toggleDarkMode} lines={lines} />
       <div className="map-container">
-        <Map stations={stations} enableMap={enableMap} />
+        <Map stations={stations} enableMap={enableMap} darkMode={darkMode} />
       </div>
     </div>
   );
 }
 
-function Nav({ toggleMap }) {
+function Nav({ toggleMap, darkMode, toggleDarkMode, lines }) {
+  const [linesDropdown, setLinesDropdown] = useState(false);
+
   return (
-    <nav className="site-nav">
-      <FontAwesomeIcon
-        icon={faMap}
-        className="nav-icon"
-        onClick={() => toggleMap()}
-      />
-      <FontAwesomeIcon
-        icon={faTrain}
-        className="nav-icon"
-        onClick={() => toggleMap()}
-      />
-      <FontAwesomeIcon
-        icon={faMagnifyingGlass}
-        className="nav-icon nav-search"
-        onClick={() => toggleMap()}
-      />
+    <nav className={darkMode ? "site-nav" : "site-nav light"}>
+      <FontAwesomeIcon icon={faMap} className="nav-icon" onClick={() => toggleMap()} />
+      <FontAwesomeIcon icon={faCircleHalfStroke} className="nav-icon" onClick={() => toggleDarkMode()} />
+      <div className="dropdown">
+        <FontAwesomeIcon icon={faTrain} className="nav-icon" onClick={() => setLinesDropdown(!linesDropdown)} />
+        {linesDropdown ? (
+          <div className={darkMode ? "dropdown-content" : "dropdown-content light"}>
+            {lines.map((line) => {
+              return (
+                <div className="dropdown-line flex">
+                  <img src={getLineImg(line.code[0])} className="metro-img" alt="" />
+                  <p>{substringBeforeLastSpace(line.name.en)}</p>
+                </div>
+              );
+            })}
+          </div>
+        ) : null}
+      </div>
+      <FontAwesomeIcon icon={faMagnifyingGlass} className="nav-icon nav-search" />
     </nav>
   );
 }
 
-function Map({ stations, enableMap }) {
+function Map({ stations, enableMap, darkMode }) {
   return (
-    <MapContainer className="map" center={[35.71, 139.75]} zoom={12}>
-      {enableMap ? (
-        <TileLayer url="https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png" />
-      ) : null}
-      {stations.map((station) => {
-        const code = station.railways[0].code;
-        const index = station.railways[0].index;
+    <div className={darkMode ? "map-background" : "map-background light"}>
+      <MapContainer className="map" center={[35.71, 139.75]} zoom={12}>
+        {enableMap ? (
+          <TileLayer
+            url={
+              darkMode
+                ? "https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png"
+                : "https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png"
+            }
+          />
+        ) : null}
+        {stations.map((station) => {
+          const code = station.railways[0].code;
+          const index = station.railways[0].index;
 
-        let path = "";
-        if (index < 10) {
-          path = `/metro_img/station_number/${
-            code[0]
-          }/${code.toLowerCase()}-0${index}.png`;
-        } else {
-          path = `/metro_img/station_number/${
-            code[0]
-          }/${code.toLowerCase()}-${index}.png`;
-        }
-        const custom_icon = new L.icon({
-          iconUrl: path,
-          iconSize: [20, 20],
-        });
+          const custom_icon = new L.icon({
+            iconUrl: getStationImg(code, index),
+            iconSize: [20, 20],
+          });
 
-        return (
-          <Marker
-            position={[station.geo.lat, station.geo.long]}
-            width="30px"
-            height="30px"
-            icon={custom_icon}
-          >
-            <Popup>
-              <div>
-                <h3>{station.name.en}</h3>
-                <h3>{station.name.ja}</h3>
-              </div>
-            </Popup>
-          </Marker>
-        );
-      })}
-    </MapContainer>
+          return (
+            <Marker position={[station.geo.lat, station.geo.long]} width="30px" height="30px" icon={custom_icon}>
+              <Popup>
+                <div>
+                  <h3>{station.name.en}</h3>
+                  <h3>{station.name.ja}</h3>
+                </div>
+              </Popup>
+            </Marker>
+          );
+        })}
+      </MapContainer>
+    </div>
   );
 }
 
