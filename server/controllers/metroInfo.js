@@ -92,7 +92,8 @@ const getInfo = asyncWrapper(async (req, res) => {
         const railway_id = station.railways;
 
         return {
-          railway_id: railway_id,
+          id: railway_id,
+          name: railway_id.split(".").pop(),
           code: line_id_to_code.get(railway_id),
           index: line_info.find((line) => line.id === railway_id).stationOrder.find((item) => item.station === id).index,
         };

@@ -10,6 +10,7 @@
 :root {
   --background-color: var(--black);
   --compliment: var(--purple);
+  --opposite-color: var(--white);
 }
 
 :root {
@@ -19,18 +20,20 @@
   background-color: var(--background-color);
 }
 
+/* Default flexbox */
+
 .flex {
   display: flex;
   align-items: center;
 }
 
+/* Button with no styling */
+
 .div-button {
-  /* Remove default button styles */
   background: none;
   border: none;
   padding: 0;
   margin: 0;
   font: inherit;
-  cursor: pointer; /* Change cursor to pointer to indicate clickability */
-  /* Add any other styles as needed */
+  cursor: pointer;
 }
