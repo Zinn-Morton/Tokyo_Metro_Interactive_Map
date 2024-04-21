@@ -1,56 +1,56 @@
+// Basic stuff
 import { useState, useEffect, useRef, useLayoutEffect } from "react";
-
-import TextareaAutosize from "react-textarea-autosize";
 import axios from "axios";
 
-import { jwtDecode } from "jwt-decode";
-
+// Map stuff
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from "react-leaflet";
 import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 
+// Fontawesome
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTrain, faMagnifyingGlass, faCircleHalfStroke } from "@fortawesome/free-solid-svg-icons";
 import { faMap } from "@fortawesome/free-regular-svg-icons";
 
-import "leaflet/dist/leaflet.css";
-
+// CSS
 import "./index.css";
 
+// My functions
+import { fetchMetroInfo } from "./fetchMetroInfo.jsx";
 import { getStationImg, getLineImg } from "./getMetroImg.jsx";
 import { substringBeforeLastSpace } from "./stringFunc.jsx";
 
+// URL of backend - TODO: change on launch
 const url = "http://localhost:5000";
 // const url = "https://task-manager-self.fly.dev";
 
+// Webpage container
 function Index() {
-  const [darkMode, setDarkMode] = useState(true);
-
+  // Data about the stations and lines fetched from the backend
   const [stations, setStations] = useState([]);
   const [lines, setLines] = useState([]);
+  const [geoHashmap, setGeoHashmap] = useState({});
   const [fetchInfoError, setFetchInfoError] = useState("");
 
+  // User toggles
+  const [darkMode, setDarkMode] = useState(true);
   const [enableMap, setEnableMap] = useState(true);
 
+  // Fetches metro info from backend and populates stations, lines, and fetchInfoError (if there was an error fetching info)
   useEffect(() => {
-    fetchMetroInfo();
+    fetchMetroInfo(url, setStations, setLines, setGeoHashmap, setFetchInfoError);
   }, []);
 
-  async function fetchMetroInfo() {
-    try {
-      const response = await axios.get(`${url}/api/v1/metroInfo/getInfo`);
-      setFetchInfoError("");
-      setStations(response.data.stationInfo);
-      setLines(response.data.lineInfo);
-    } catch (err) {
-      setFetchInfoError("Error fetching stations");
-    }
-  }
-
+  // Two user toggle functions
   function toggleMap() {
     setEnableMap(!enableMap);
   }
 
+  // Dark toggle toggles the "light" class on all elements with class ".dark-toggle"
   function toggleDarkMode() {
+    document.querySelectorAll(".dark-toggle").forEach((e) => {
+      e.classList.toggle("light");
+    });
     setDarkMode(!darkMode);
   }
 
@@ -58,74 +58,101 @@ function Index() {
     <div className="site-container">
       <Nav toggleMap={toggleMap} darkMode={darkMode} toggleDarkMode={toggleDarkMode} lines={lines} />
       <div className="map-container">
-        <Map stations={stations} enableMap={enableMap} darkMode={darkMode} />
+        <MapComponent stations={stations} lines={lines} geoHashmap={geoHashmap} enableMap={enableMap} darkMode={darkMode} />
       </div>
     </div>
   );
 }
 
-function Nav({ toggleMap, darkMode, toggleDarkMode, lines }) {
+// Navbar at top
+function Nav({ toggleMap, toggleDarkMode, lines }) {
+  // Dropdown toggle for metro lines
   const [linesDropdown, setLinesDropdown] = useState(false);
 
   return (
-    <nav className={darkMode ? "site-nav" : "site-nav light"}>
+    <nav className="site-nav dark-toggle">
+      {/* Map toggle */}
       <FontAwesomeIcon icon={faMap} className="nav-icon" onClick={() => toggleMap()} />
+      {/* Dark mode toggle */}
       <FontAwesomeIcon icon={faCircleHalfStroke} className="nav-icon" onClick={() => toggleDarkMode()} />
+      {/* Metro lines selector */}
       <div className="dropdown">
         <FontAwesomeIcon icon={faTrain} className="nav-icon" onClick={() => setLinesDropdown(!linesDropdown)} />
-        {linesDropdown ? (
-          <div className={darkMode ? "dropdown-content" : "dropdown-content light"}>
-            {lines.map((line) => {
-              return (
-                <div className="dropdown-line flex">
-                  <img src={getLineImg(line.code[0])} className="metro-img" alt="" />
-                  <p>{substringBeforeLastSpace(line.name.en)}</p>
-                </div>
-              );
-            })}
-          </div>
-        ) : null}
+        {linesDropdown ? <LineSelector lines={lines} /> : null}
       </div>
+      {/* Search */}
       <FontAwesomeIcon icon={faMagnifyingGlass} className="nav-icon nav-search" />
     </nav>
   );
 }
 
-function Map({ stations, enableMap, darkMode }) {
+function LineSelector({ lines }) {
   return (
-    <div className={darkMode ? "map-background" : "map-background light"}>
-      <MapContainer className="map" center={[35.71, 139.75]} zoom={12}>
-        {enableMap ? (
-          <TileLayer
-            url={
-              darkMode
-                ? "https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png"
-                : "https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png"
-            }
-          />
-        ) : null}
-        {stations.map((station) => {
-          const code = station.railways[0].code;
-          const index = station.railways[0].index;
-
-          const custom_icon = new L.icon({
-            iconUrl: getStationImg(code, index),
-            iconSize: [20, 20],
-          });
-
-          return (
-            <Marker position={[station.geo.lat, station.geo.long]} width="30px" height="30px" icon={custom_icon}>
-              <Popup>
-                <div>
-                  <h3>{station.name.en}</h3>
-                  <h3>{station.name.ja}</h3>
-                </div>
-              </Popup>
-            </Marker>
-          );
-        })}
-      </MapContainer>
+    <div className="dropdown-content dark-toggle">
+      {lines.map((line) => {
+        return (
+          <button className="dropdown-line div-button flex">
+            <img src={getLineImg(line.code[0])} className="metro-img" alt="" />
+            <p>{substringBeforeLastSpace(line.name.en)}</p>
+          </button>
+        );
+      })}
     </div>
+  );
+}
+
+// Map
+function MapComponent({ stations, lines, enableMap, geoHashmap, darkMode }) {
+  return (
+    <>
+      {/* Div to color background if map is disabled */}
+      <div className="map-background dark-toggle">
+        <MapContainer className="map" center={[35.71, 139.75]} zoom={12}>
+          {enableMap ? (
+            <TileLayer
+              url={
+                darkMode
+                  ? "https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png"
+                  : "https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png"
+              }
+            />
+          ) : null}
+          {/* Maps stations into markers on the map */}
+          {stations.map((station) => {
+            const code = station.railways[0].code;
+            const index = station.railways[0].index;
+
+            const custom_icon = new L.icon({
+              iconUrl: getStationImg(code, index),
+              iconSize: [20, 20],
+            });
+
+            return (
+              <Marker position={[station.geo.lat, station.geo.long]} width="30px" height="30px" icon={custom_icon}>
+                <Popup>
+                  <div>
+                    <h3>{station.name.en}</h3>
+                    <h3>{station.name.ja}</h3>
+                  </div>
+                </Popup>
+              </Marker>
+            );
+          })}
+
+          {/* Draws lines between markers for each metro line */}
+          {lines.map((line) => {
+            return (
+              <Polyline
+                positions={line.stationOrder.map((station) => {
+                  return geoHashmap[station.station];
+                })}
+                pathOptions={{ color: line.color }}
+              />
+            );
+          })}
+        </MapContainer>
+      </div>
+    </>
   );
 }
 

@@ -7,11 +7,15 @@ const Account = require("../models/Account.js");
 const { StatusCodes } = require("http-status-codes");
 const asyncWrapper = require("../middleware/async.js");
 
+// Returns these 3 things:
+
 // Gets all unique stations
 // Returns id, geocoords, name in multiple languages, which lines it connects to, and line codes for the lines it connects to
 
 // Gets all lines
 // Returns id, name in multiple languages, color, code, and station order
+
+// Returns a object mapping station id to coords
 const getInfo = asyncWrapper(async (req, res) => {
   // From https://ckan.odpt.org/en/dataset/r_route-tokyometro/resource/81d953eb-65f8-4dfd-ba99-cd43d41e8b9b
   const response_line = await axios.get(
@@ -37,7 +41,7 @@ const getInfo = asyncWrapper(async (req, res) => {
       stationOrder: item["odpt:stationOrder"].map((station) => {
         return {
           index: station["odpt:index"],
-          station: station["odpt:station"],
+          station: station["odpt:station"].split(".").pop(),
         };
       }),
     };
@@ -88,21 +92,25 @@ const getInfo = asyncWrapper(async (req, res) => {
         const railway_id = station.railways;
 
         return {
-          station_id: station.id,
           railway_id: railway_id,
           code: line_id_to_code.get(railway_id),
-          index: line_info
-            .find((line) => line.id === railway_id)
-            .stationOrder.find((item) => item.station === station.id).index,
+          index: line_info.find((line) => line.id === railway_id).stationOrder.find((item) => item.station === id).index,
         };
       }),
       geo: group[0].geo,
     };
   });
 
+  // Create mapping of station id to coords
+  station_to_coords = {};
+  unique_stations.forEach((station) => {
+    station_to_coords = { ...station_to_coords, [station.id]: [station.geo.lat, station.geo.long] };
+  });
+
   const ret = {
     stationInfo: unique_stations,
     lineInfo: line_info,
+    stationToCoords: station_to_coords,
   };
 
   res.status(StatusCodes.OK).json(ret);
@@ -114,11 +122,7 @@ const getInfo = asyncWrapper(async (req, res) => {
 const signup = asyncWrapper(async (req, res) => {
   const new_acc = await Account.create(req.body);
 
-  const token = jwt.sign(
-    { acc_id: new_acc._id, username: new_acc.username },
-    process.env.JWT_SECRET,
-    { expiresIn: "30d" }
-  );
+  const token = jwt.sign({ acc_id: new_acc._id, username: new_acc.username }, process.env.JWT_SECRET, { expiresIn: "30d" });
 
   res.status(StatusCodes.OK).json({ token: token });
 });
@@ -130,25 +134,17 @@ const login = asyncWrapper(async (req, res) => {
   const acc = await Account.findOne({ username: username });
 
   if (!acc) {
-    res
-      .status(StatusCodes.UNAUTHORIZED)
-      .json({ message: "Invalid credentials" });
+    res.status(StatusCodes.UNAUTHORIZED).json({ message: "Invalid credentials" });
   }
 
   const password_correct = await acc.comparePassword(password);
 
   if (password_correct) {
-    const token = jwt.sign(
-      { acc_id: acc._id, username: acc.username },
-      process.env.JWT_SECRET,
-      { expiresIn: "30d" }
-    );
+    const token = jwt.sign({ acc_id: acc._id, username: acc.username }, process.env.JWT_SECRET, { expiresIn: "30d" });
 
     res.status(StatusCodes.OK).json({ token: token });
   } else {
-    res
-      .status(StatusCodes.UNAUTHORIZED)
-      .json({ message: "Invalid credentials" });
+    res.status(StatusCodes.UNAUTHORIZED).json({ message: "Invalid credentials" });
   }
 });
 
@@ -176,9 +172,7 @@ const deleteTask = asyncWrapper(async (req, res) => {
   const { id } = req.params;
 
   if (!acc.tasks.includes(id)) {
-    return res
-      .status(StatusCodes.UNAUTHORIZED)
-      .json({ err: "Cannot delete another user's task" });
+    return res.status(StatusCodes.UNAUTHORIZED).json({ err: "Cannot delete another user's task" });
   }
 
   const deleted_task = await Task.findOneAndDelete({ _id: id });
@@ -197,9 +191,7 @@ const editTask = asyncWrapper(async (req, res) => {
   const { id } = req.params;
 
   if (!acc.tasks.includes(id)) {
-    return res
-      .status(StatusCodes.UNAUTHORIZED)
-      .json({ err: "Cannot edit another user's task" });
+    return res.status(StatusCodes.UNAUTHORIZED).json({ err: "Cannot edit another user's task" });
   }
 
   const edited_task = await Task.findOneAndUpdate({ _id: id }, req.body, {
