@@ -4,24 +4,26 @@ import { renderToStaticMarkup } from "react-dom/server";
 import axios from "axios";
 
 // Map stuff
-import { MapContainer, useMapEvents, TileLayer, Marker, Popup, Polyline } from "react-leaflet";
+import { MapContainer, useMapEvents, TileLayer, Marker, Popup, Polyline, ZoomControl } from "react-leaflet";
 import { divIcon } from "leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
 // Fontawesome
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faTrain, faMagnifyingGlass, faCircleHalfStroke, faSquareCheck, faSquareXmark } from "@fortawesome/free-solid-svg-icons";
+import { faTrain, faMagnifyingGlass, faCircleHalfStroke, faSquareCheck, faSquareXmark, faGear } from "@fortawesome/free-solid-svg-icons";
 import { faMap } from "@fortawesome/free-regular-svg-icons";
 
 // CSS
 import "./index.css";
 
 // My functions
+import { useImagePreloader } from "./useImagePreloader.jsx";
 import { useClickOutside } from "./useClickOutside.jsx";
 import { fetchMetroInfo } from "./fetchMetroInfo.jsx";
 import { getStationImg, getLineImg } from "./getMetroImg.jsx";
 import { substringBeforeLastSpace } from "./stringFunc.jsx";
+import { getChosenLineIds } from "./getChosenLineIds.jsx";
 
 // URL of backend - TODO: change on launch
 const url = "http://localhost:5000";
@@ -43,6 +45,9 @@ function Index() {
   useEffect(() => {
     fetchMetroInfo(url, setStations, setLines, setGeoHashmap, setFetchInfoError);
   }, []);
+
+  // Preloads images
+  const imagesLoaded = useImagePreloader(stations, lines);
 
   // Sets shown/unshown stations depending on which lines are shown
   useEffect(() => {
@@ -91,11 +96,13 @@ function Index() {
 // Navbar at top
 function Nav({ toggleMap, toggleDarkMode, lines, setLines }) {
   // Dropdown toggle for metro lines
+  const [settingsDropdown, setSettingsDropdown] = useState(false);
   const [linesDropdown, setLinesDropdown] = useState(false);
 
   // Closes dropdowns when clicked outside of
   const maptoggle_ref = useRef(null);
   const darkmode_ref = useRef(null);
+  const settings_dropdown_ref = useRef(null);
   const lines_dropdown_btn_ref = useRef(null);
   const lines_dropdown_ref = useRef(null);
   useClickOutside([lines_dropdown_btn_ref, lines_dropdown_ref, darkmode_ref, maptoggle_ref], () => {
@@ -104,6 +111,11 @@ function Nav({ toggleMap, toggleDarkMode, lines, setLines }) {
 
   return (
     <nav className="site-nav dark-toggle">
+      {/* Settings */}
+      <div className="dropdown">
+        <FontAwesomeIcon icon={faGear} ref={settings_dropdown_ref} className="nav-icon dark-toggle" onClick={() => setSettingsDropdown(!settingsDropdown)} />
+        {settingsDropdown ? <SettingsDropdown /> : null}
+      </div>
       {/* Map toggle */}
       <FontAwesomeIcon icon={faMap} ref={maptoggle_ref} className="nav-icon dark-toggle" onClick={() => toggleMap()} />
       {/* Dark mode toggle */}
@@ -117,20 +129,6 @@ function Nav({ toggleMap, toggleDarkMode, lines, setLines }) {
       <FontAwesomeIcon icon={faMagnifyingGlass} className="nav-icon nav-search" />
     </nav>
   );
-}
-
-function getChosenLineIds(lines) {
-  let chosen_line_ids = [];
-
-  if (lines) {
-    lines.forEach((line) => {
-      if (line.shown && !chosen_line_ids.includes(line.id)) {
-        chosen_line_ids.push(line.id);
-      }
-    });
-  }
-
-  return chosen_line_ids;
 }
 
 // Dropdown from navbar to be able to select lines
@@ -168,14 +166,14 @@ const LineSelector = forwardRef(({ lines, setLines }, ref) => {
   }
 
   return (
-    <div className="dropdown-content dark-toggle" ref={ref}>
+    <div className="dropdown-content right-side dark-toggle" ref={ref}>
       <button className="dropdown-line div-button selected" onClick={() => setAllLines(true)}>
         <span className="metro-img">
           <FontAwesomeIcon className="dropdown-icon" icon={faSquareCheck} />
         </span>
         Select All
       </button>
-      <button className="dropdown-line div-button" onClick={() => setAllLines(false)}>
+      <button className="dropdown-line div-button unselected" onClick={() => setAllLines(false)}>
         <span className="metro-img">
           <FontAwesomeIcon className="dropdown-icon" icon={faSquareXmark} />
         </span>
@@ -188,7 +186,7 @@ const LineSelector = forwardRef(({ lines, setLines }, ref) => {
         }
 
         return (
-          <button className={selected ? "dropdown-line div-button selected" : "dropdown-line div-button"} onClick={() => toggleLineShown(line.id)}>
+          <button className={selected ? "dropdown-line div-button selected" : "dropdown-line div-button unselected"} onClick={() => toggleLineShown(line.id)}>
             <span className="metro-img">
               <img src={getLineImg(line.code[0])} className="metro-img" alt="" />
             </span>
@@ -196,6 +194,18 @@ const LineSelector = forwardRef(({ lines, setLines }, ref) => {
           </button>
         );
       })}
+    </div>
+  );
+});
+
+// Dropdown from navbar for settings
+const SettingsDropdown = forwardRef(({}, ref) => {
+  return (
+    <div className="dropdown-content left-side dark-toggle" ref={ref}>
+      <div className="dropdown-line">
+        <h3>Language</h3>
+        <select></select>
+      </div>
     </div>
   );
 });
@@ -213,6 +223,11 @@ function MapComponent({ stations, lines, enableMap, geoHashmap, darkMode }) {
   const [mouseOverPopupImg, setMouseOverPopupImg] = useState("");
   const [mouseOverPopupName, setMouseOverPopupName] = useState("");
   const [mouseOverPopupPos, setMouseOverPopupPos] = useState([35.71, 139.75]);
+
+  useEffect(() => {
+    setShowMouseOverPopup(false);
+    setInitialPopupHidden(false);
+  }, [lines]);
 
   // Show popup
   function handleMouseOver(e, name, img) {
@@ -236,7 +251,7 @@ function MapComponent({ stations, lines, enableMap, geoHashmap, darkMode }) {
         const distance = popup_point.distanceTo(mouse_point);
 
         // Hide the popup if the distance is greater than a threshold
-        if (distance > 40) {
+        if (distance > 25) {
           setShowMouseOverPopup(false);
           map_ref.current.closePopup();
         }
@@ -262,7 +277,7 @@ function MapComponent({ stations, lines, enableMap, geoHashmap, darkMode }) {
     <>
       {/* Div to color background if map is disabled */}
       <div className="map-background dark-toggle">
-        <MapContainer className="map" ref={map_ref} center={[35.71, 139.75]} zoom={12}>
+        <MapContainer className="map" ref={map_ref} center={[35.71, 139.75]} zoom={12} zoomControl={false} attributionControl={false}>
           <MapEvents />
           {enableMap ? (
             <TileLayer
@@ -273,6 +288,7 @@ function MapComponent({ stations, lines, enableMap, geoHashmap, darkMode }) {
               }
             />
           ) : null}
+          <ZoomControl position="bottomleft" />
           {/* Maps stations into markers on the map */}
           {stations.map((station) => {
             if (!station.shown) {
