@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import axios from "axios";
 
 // Map stuff
-import { MapContainer, TileLayer, Marker, Popup, Polyline } from "react-leaflet";
+import { MapContainer, useMapEvents, TileLayer, Marker, Popup, Polyline } from "react-leaflet";
 import { divIcon } from "leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -35,8 +35,6 @@ function Index() {
   const [geoHashmap, setGeoHashmap] = useState({});
   const [fetchInfoError, setFetchInfoError] = useState("");
 
-  // Selected stations
-
   // User toggles
   const [darkMode, setDarkMode] = useState(true);
   const [enableMap, setEnableMap] = useState(true);
@@ -45,6 +43,27 @@ function Index() {
   useEffect(() => {
     fetchMetroInfo(url, setStations, setLines, setGeoHashmap, setFetchInfoError);
   }, []);
+
+  // Sets shown/unshown stations depending on which lines are shown
+  useEffect(() => {
+    let new_stations = [...stations];
+
+    const chosen_line_ids = getChosenLineIds(lines);
+
+    new_stations.forEach((station) => {
+      let shown = false;
+
+      station.railways.forEach((railway) => {
+        if (chosen_line_ids.includes(railway.id)) {
+          shown = true;
+        }
+      });
+
+      station.shown = shown;
+    });
+
+    setStations(new_stations);
+  }, [lines]);
 
   // Two user toggle functions
   function toggleMap() {
@@ -61,7 +80,7 @@ function Index() {
 
   return (
     <div className="site-container">
-      <Nav toggleMap={toggleMap} darkMode={darkMode} toggleDarkMode={toggleDarkMode} lines={lines} />
+      <Nav toggleMap={toggleMap} toggleDarkMode={toggleDarkMode} stations={stations} setStations={setStations} lines={lines} setLines={setLines} />
       <div className="map-container">
         <MapComponent stations={stations} lines={lines} geoHashmap={geoHashmap} enableMap={enableMap} darkMode={darkMode} />
       </div>
@@ -70,7 +89,7 @@ function Index() {
 }
 
 // Navbar at top
-function Nav({ toggleMap, toggleDarkMode, lines }) {
+function Nav({ toggleMap, toggleDarkMode, lines, setLines }) {
   // Dropdown toggle for metro lines
   const [linesDropdown, setLinesDropdown] = useState(false);
 
@@ -92,7 +111,7 @@ function Nav({ toggleMap, toggleDarkMode, lines }) {
       {/* Metro lines selector */}
       <div className="dropdown">
         <FontAwesomeIcon icon={faTrain} className="nav-icon" ref={lines_dropdown_btn_ref} onClick={() => setLinesDropdown(!linesDropdown)} />
-        {linesDropdown ? <LineSelector ref={lines_dropdown_ref} lines={lines} /> : null}
+        {linesDropdown ? <LineSelector ref={lines_dropdown_ref} lines={lines} setLines={setLines} /> : null}
       </div>
       {/* Search */}
       <FontAwesomeIcon icon={faMagnifyingGlass} className="nav-icon nav-search" />
@@ -100,25 +119,76 @@ function Nav({ toggleMap, toggleDarkMode, lines }) {
   );
 }
 
+function getChosenLineIds(lines) {
+  let chosen_line_ids = [];
+
+  if (lines) {
+    lines.forEach((line) => {
+      if (line.shown && !chosen_line_ids.includes(line.id)) {
+        chosen_line_ids.push(line.id);
+      }
+    });
+  }
+
+  return chosen_line_ids;
+}
+
 // Dropdown from navbar to be able to select lines
-const LineSelector = forwardRef(({ lines }, ref) => {
+const LineSelector = forwardRef(({ lines, setLines }, ref) => {
+  // Get chosen line ids in a simple list
+  const chosen_line_ids = getChosenLineIds(lines);
+
+  if (lines) {
+    lines.forEach((line) => {
+      if (line.shown && !chosen_line_ids.includes(line.id)) {
+        chosen_line_ids.push(line.id);
+      }
+    });
+  }
+
+  // Toggles a line showing on the map given the line id
+  function toggleLineShown(id) {
+    let updated_lines = [...lines];
+
+    const shown = updated_lines.find((line) => line.id === id).shown;
+    updated_lines.find((line) => line.id === id).shown = !shown;
+
+    setLines(updated_lines);
+  }
+
+  // Show all / hide all stuff
+  function setAllLines(show) {
+    let updated_lines = [...lines];
+
+    updated_lines.forEach((line) => {
+      line.shown = show;
+    });
+
+    setLines(updated_lines);
+  }
+
   return (
     <div className="dropdown-content dark-toggle" ref={ref}>
-      <button className="dropdown-line div-button">
+      <button className="dropdown-line div-button selected" onClick={() => setAllLines(true)}>
         <span className="metro-img">
           <FontAwesomeIcon className="dropdown-icon" icon={faSquareCheck} />
         </span>
         Select All
       </button>
-      <button className="dropdown-line div-button">
+      <button className="dropdown-line div-button" onClick={() => setAllLines(false)}>
         <span className="metro-img">
           <FontAwesomeIcon className="dropdown-icon" icon={faSquareXmark} />
         </span>
         Deselect All
       </button>
       {lines.map((line) => {
+        let selected = false;
+        if (chosen_line_ids && chosen_line_ids.includes(line.id)) {
+          selected = true;
+        }
+
         return (
-          <button className="dropdown-line div-button">
+          <button className={selected ? "dropdown-line div-button selected" : "dropdown-line div-button"} onClick={() => toggleLineShown(line.id)}>
             <span className="metro-img">
               <img src={getLineImg(line.code[0])} className="metro-img" alt="" />
             </span>
@@ -132,6 +202,57 @@ const LineSelector = forwardRef(({ lines }, ref) => {
 
 // Map
 function MapComponent({ stations, lines, enableMap, geoHashmap, darkMode }) {
+  const map_ref = useRef(null);
+
+  // Show line when hovering over the line and hide when it gets far enough away from the popup
+  // The following code is pretty fucked up and idk how it works.
+  // I just made it from trying to fix one problem at a time.
+  // Note to self: Don't touch this unless you really have to
+  const [initialPopupHidden, setInitialPopupHidden] = useState(false);
+  const [showMouseOverPopup, setShowMouseOverPopup] = useState(false);
+  const [mouseOverPopupImg, setMouseOverPopupImg] = useState("");
+  const [mouseOverPopupName, setMouseOverPopupName] = useState("");
+  const [mouseOverPopupPos, setMouseOverPopupPos] = useState([35.71, 139.75]);
+
+  // Show popup
+  function handleMouseOver(e, name, img) {
+    if (showMouseOverPopup) return;
+
+    setMouseOverPopupName(name);
+    setMouseOverPopupImg(img);
+    setMouseOverPopupPos(e.latlng);
+    setShowMouseOverPopup(true);
+  }
+
+  // Hide initial popup / Hide popup when mouse is far enough away
+  function MapEvents() {
+    useMapEvents({
+      mousemove: (e) => {
+        if (!showMouseOverPopup) return;
+
+        // Calculate distance between mouse position and popup position
+        const popup_point = map_ref.current.latLngToContainerPoint(mouseOverPopupPos);
+        const mouse_point = map_ref.current.mouseEventToContainerPoint(e.originalEvent);
+        const distance = popup_point.distanceTo(mouse_point);
+
+        // Hide the popup if the distance is greater than a threshold
+        if (distance > 40) {
+          setShowMouseOverPopup(false);
+          map_ref.current.closePopup();
+        }
+      },
+      popupopen: () => {
+        if (!initialPopupHidden) {
+          map_ref.current.closePopup();
+          setInitialPopupHidden(true);
+        }
+      },
+    });
+
+    return null;
+  }
+
+  // Train icon
   const icon_markup = renderToStaticMarkup(<FontAwesomeIcon className="map-icon dark-toggle" icon={faTrain} />);
   const custom_icon = divIcon({
     html: icon_markup,
@@ -141,7 +262,8 @@ function MapComponent({ stations, lines, enableMap, geoHashmap, darkMode }) {
     <>
       {/* Div to color background if map is disabled */}
       <div className="map-background dark-toggle">
-        <MapContainer className="map" center={[35.71, 139.75]} zoom={12}>
+        <MapContainer className="map" ref={map_ref} center={[35.71, 139.75]} zoom={12}>
+          <MapEvents />
           {enableMap ? (
             <TileLayer
               url={
@@ -153,6 +275,10 @@ function MapComponent({ stations, lines, enableMap, geoHashmap, darkMode }) {
           ) : null}
           {/* Maps stations into markers on the map */}
           {stations.map((station) => {
+            if (!station.shown) {
+              return null;
+            }
+
             const code = station.railways[0].code;
             const index = station.railways[0].index;
 
@@ -181,13 +307,43 @@ function MapComponent({ stations, lines, enableMap, geoHashmap, darkMode }) {
 
           {/* Draws lines between markers for each metro line */}
           {lines.map((line) => {
+            if (!line.shown) {
+              return null;
+            }
+
             return (
-              <Polyline
-                positions={line.stationOrder.map((station) => {
-                  return geoHashmap[station.station];
-                })}
-                pathOptions={{ color: line.color }}
-              />
+              <>
+                {/* Outline */}
+                <Polyline
+                  positions={line.stationOrder.map((station) => {
+                    return geoHashmap[station.station];
+                  })}
+                  pathOptions={{
+                    color: "#000000",
+                    weight: 5,
+                  }}
+                  eventHandlers={{
+                    mouseover: (e) => handleMouseOver(e, line.name.en, getLineImg(line.code)),
+                  }}
+                />
+                {/* The line itself */}
+                <Polyline
+                  positions={line.stationOrder.map((station) => {
+                    return geoHashmap[station.station];
+                  })}
+                  pathOptions={{
+                    color: line.color,
+                    weight: 3,
+                  }}
+                />
+                {/* Hover over line to show line name */}
+                <Popup className={"line-hover-popup dark-toggle"} position={mouseOverPopupPos}>
+                  <div className="map-popup-line">
+                    <img className="dark-toggle" src={mouseOverPopupImg}></img>
+                    <h3>{mouseOverPopupName}</h3>
+                  </div>
+                </Popup>
+              </>
             );
           })}
         </MapContainer>

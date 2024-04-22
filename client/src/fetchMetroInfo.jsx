@@ -5,8 +5,8 @@ async function fetchMetroInfo(url, setStations, setLines, setGeoHashmap, setFetc
     const response = await axios.get(`${url}/api/v1/metroInfo/getInfo`);
 
     // Set stations and lines
-    setStations(response.data.stationInfo);
     setLines(response.data.lineInfo);
+    setStations(response.data.stationInfo);
     setGeoHashmap(response.data.stationToCoords);
 
     setFetchInfoError("");

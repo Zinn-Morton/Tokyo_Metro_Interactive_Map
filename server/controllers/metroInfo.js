@@ -44,6 +44,7 @@ const getInfo = asyncWrapper(async (req, res) => {
           station: station["odpt:station"].split(".").pop(),
         };
       }),
+      shown: true,
     };
 
     line_id_to_code.set(extracted_data.id, extracted_data.code);
@@ -99,6 +100,7 @@ const getInfo = asyncWrapper(async (req, res) => {
         };
       }),
       geo: group[0].geo,
+      shown: true,
     };
   });
 

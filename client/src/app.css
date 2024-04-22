@@ -1,16 +1,18 @@
 :root {
-  --white: white;
+  --white: #ffffff;
   --black: #242424;
   --purple: #6b0ba7;
   --blue: #6ccff6;
-  --green: #18ff8f;
-  --red: #d5573b;
+  --light-blue: #50d8d7;
+  --red: #cf7664;
 }
 
 :root {
   --background-color: var(--black);
-  --compliment: var(--purple);
+  --compliment-color: var(--purple);
   --opposite-color: var(--white);
+  --selected-color: var(--light-blue);
+  --unselected-color: var(--red);
 }
 
 :root {
