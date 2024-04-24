@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-import { getStationImg, getLineImg } from "./getMetroImg.jsx";
+import { getStationImg, getLineImg } from "../functions/getMetroImg.jsx";
 
 function useImagePreloader(stations, lines) {
   const [imagesLoaded, setImagesLoaded] = useState(false);

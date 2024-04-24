@@ -1,7 +1,6 @@
 const express = require("express");
 
 const { getInfo } = require("../controllers/metroInfo.js");
-const authMiddleware = require("../middleware/auth.js");
 
 const router = express.Router();
 

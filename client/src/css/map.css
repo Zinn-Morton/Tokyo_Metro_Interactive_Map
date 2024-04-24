@@ -1,4 +1,7 @@
 /* Map stuff */
+* {
+  --map-icon-size: 10px;
+}
 
 .map-background {
   width: 100%;

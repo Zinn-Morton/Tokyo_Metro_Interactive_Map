@@ -1,0 +1,78 @@
+:root {
+  --white: #e5e5e5;
+  --gray: #8f8389;
+  --black: #351330;
+  --purple: #8e3bc1;
+  --blue: #6ccff6;
+  --light-blue: #6af2f2;
+  --red: #da7561;
+  --light-green: #60b99a;
+}
+
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+
+  color-scheme: light dark;
+  background-color: var(--background-color);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Dark mode */
+:root {
+  --background-color: var(--black);
+  --compliment-color: var(--purple);
+  --opposite-color: var(--white);
+  --second-background-color: var(--purple);
+  --selected-color: var(--light-blue);
+  --unselected-color: var(--red);
+}
+
+/* Light mode */
+.light {
+  --background-color: var(--white);
+  --compliment-color: var(--gray);
+  --opposite-color: var(--black);
+  --second-background-color: var(--white);
+  --selected-color: var(--light-green);
+}
+
+.black {
+  color: var(--black);
+}
+
+/* Default flexbox */
+.flex {
+  display: flex;
+  align-items: center;
+}
+
+/* Button with no styling */
+.div-button {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  cursor: pointer;
+}
+
+/* Underline to make link */
+.link {
+  text-decoration: underline;
+  text-decoration-thickness: 0.1rem;
+}
+
+/* Click cursor */
+.button {
+  cursor: pointer;
+}
+
+/* Line break */
+.break {
+  height: 1rem;
+}

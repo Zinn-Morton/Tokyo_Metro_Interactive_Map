@@ -5,27 +5,40 @@ import axios from "axios";
 
 // Map stuff
 import { MapContainer, useMapEvents, TileLayer, Marker, Popup, Polyline, ZoomControl } from "react-leaflet";
-import { divIcon } from "leaflet";
+import { divIcon, popup } from "leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
 // Fontawesome
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faTrain, faMagnifyingGlass, faCircleHalfStroke, faSquareCheck, faSquareXmark, faGear, faLanguage } from "@fortawesome/free-solid-svg-icons";
+import {
+  faTrain,
+  faMagnifyingGlass,
+  faCircleHalfStroke,
+  faSquareCheck,
+  faSquareXmark,
+  faGear,
+  faLanguage,
+  faCircleInfo,
+  faCircleXmark,
+} from "@fortawesome/free-solid-svg-icons";
 import { faMap } from "@fortawesome/free-regular-svg-icons";
 
 // CSS
-import "./index.css";
-import "./nav.css";
-import "./map.css";
+import "./css/index.css";
+import "./css/nav.css";
+import "./css/map.css";
+import "./css/popup.css";
+
+// My hooks
+import { useImagePreloader } from "./hooks/useImagePreloader.jsx";
+import { useClickOutside } from "./hooks/useClickOutside.jsx";
 
 // My functions
-import { useImagePreloader } from "./useImagePreloader.jsx";
-import { useClickOutside } from "./useClickOutside.jsx";
-import { fetchMetroInfo } from "./fetchMetroInfo.jsx";
-import { getStationImg, getLineImg } from "./getMetroImg.jsx";
-import { substringBeforeLastSpace } from "./stringFunc.jsx";
-import { getChosenLineIds } from "./getChosenLineIds.jsx";
+import { fetchMetroInfo } from "./functions/fetchMetroInfo.jsx";
+import { getStationImg, getLineImg } from "./functions/getMetroImg.jsx";
+import { substringBeforeLastSpace } from "./functions/stringFunc.jsx";
+import { getChosenLineIds } from "./functions/getChosenLineIds.jsx";
 
 // URL of backend - TODO: change on launch
 const url = "http://localhost:5000";
@@ -81,7 +94,11 @@ function Index() {
   // Dark toggle toggles the "light" class on all elements with class ".dark-toggle"
   function toggleDarkMode() {
     document.querySelectorAll(".dark-toggle").forEach((e) => {
-      e.classList.toggle("light");
+      if (darkMode) {
+        e.classList.add("light");
+      } else {
+        e.classList.remove("light");
+      }
     });
     setDarkMode(!darkMode);
   }
@@ -107,7 +124,10 @@ function Index() {
 
 // Navbar at top
 function Nav({ language, setLanguage, toggleMap, toggleDarkMode, lines, setLines }) {
-  // Dropdown toggle for metro lines
+  // Popup toggle
+  const [infoPopup, setInfoPopup] = useState(false);
+
+  // Dropdown toggles
   const [settingsDropdown, setSettingsDropdown] = useState(false);
   const [linesDropdown, setLinesDropdown] = useState(false);
 
@@ -117,8 +137,10 @@ function Nav({ language, setLanguage, toggleMap, toggleDarkMode, lines, setLines
   const settings_dropdown_ref = useRef(null);
   const lines_dropdown_btn_ref = useRef(null);
   const lines_dropdown_ref = useRef(null);
+  const popup_btn_ref = useRef(null);
+  const popup_ref = useRef(null);
 
-  // Closes dropdowns when clicked outside of
+  // Closes dropdowns / popups when clicked outside of
   useClickOutside([lines_dropdown_btn_ref, lines_dropdown_ref, darkmode_ref, maptoggle_ref], () => {
     setLinesDropdown(false);
   });
@@ -127,30 +149,48 @@ function Nav({ language, setLanguage, toggleMap, toggleDarkMode, lines, setLines
     setSettingsDropdown(false);
   });
 
+  useClickOutside([popup_btn_ref, popup_ref, darkmode_ref], () => {
+    setInfoPopup(false);
+  });
+
   return (
-    <nav className="site-nav dark-toggle">
-      {/* Settings */}
-      <div className="dropdown">
-        <FontAwesomeIcon
-          icon={faGear}
-          ref={settings_dropdown_btn_ref}
-          className="nav-icon dark-toggle"
-          onClick={() => setSettingsDropdown(!settingsDropdown)}
-        />
-        {settingsDropdown ? <SettingsDropdown ref={settings_dropdown_ref} language={language} setLanguage={setLanguage} /> : null}
-      </div>
-      {/* Map toggle */}
-      <FontAwesomeIcon icon={faMap} ref={maptoggle_ref} className="nav-icon dark-toggle" onClick={() => toggleMap()} />
-      {/* Dark mode toggle */}
-      <FontAwesomeIcon icon={faCircleHalfStroke} ref={darkmode_ref} className="nav-icon" onClick={() => toggleDarkMode()} />
-      {/* Metro lines selector */}
-      <div className="dropdown">
-        <FontAwesomeIcon icon={faTrain} className="nav-icon" ref={lines_dropdown_btn_ref} onClick={() => setLinesDropdown(!linesDropdown)} />
-        {linesDropdown ? <LineSelector ref={lines_dropdown_ref} language={language} lines={lines} setLines={setLines} /> : null}
-      </div>
-      {/* Search */}
-      <FontAwesomeIcon icon={faMagnifyingGlass} className="nav-icon nav-search" />
-    </nav>
+    <>
+      <nav className="site-nav dark-toggle">
+        {/* Settings */}
+        <div className="dropdown">
+          <FontAwesomeIcon
+            icon={faGear}
+            ref={settings_dropdown_btn_ref}
+            className="nav-icon button dark-toggle"
+            onClick={() => setSettingsDropdown(!settingsDropdown)}
+          />
+          {settingsDropdown ? (
+            <SettingsDropdown
+              ref={settings_dropdown_ref}
+              language={language}
+              setLanguage={setLanguage}
+              setSettingsDropdown={setSettingsDropdown}
+              setInfoPopup={setInfoPopup}
+              popup_btn_ref={popup_btn_ref}
+            />
+          ) : null}
+        </div>
+        {/* Map toggle */}
+        <FontAwesomeIcon icon={faMap} ref={maptoggle_ref} className="nav-icon button dark-toggle" onClick={() => toggleMap()} />
+        {/* Dark mode toggle */}
+        {/* <h2 className="site-title">Site Title</h2> */}
+        <FontAwesomeIcon icon={faCircleHalfStroke} ref={darkmode_ref} className="nav-icon button" onClick={() => toggleDarkMode()} />
+        {/* Metro lines selector */}
+        <div className="dropdown">
+          <FontAwesomeIcon icon={faTrain} className="nav-icon button" ref={lines_dropdown_btn_ref} onClick={() => setLinesDropdown(!linesDropdown)} />
+          {linesDropdown ? <LineSelector ref={lines_dropdown_ref} language={language} lines={lines} setLines={setLines} /> : null}
+        </div>
+        {/* Search */}
+        <FontAwesomeIcon icon={faMagnifyingGlass} className="nav-icon nav-search button" />
+      </nav>
+      {/* Info popup */}
+      {infoPopup ? <InfoPopup ref={popup_ref} setInfoPopup={setInfoPopup} /> : null}
+    </>
   );
 }
 
@@ -162,14 +202,14 @@ const LineSelector = forwardRef(({ language, lines, setLines }, ref) => {
     const temp = {
       "Select-All": {
         en: "Show All",
-        ja: "全部",
+        ja: "全表示",
         ko: "전체 선택",
         "zh-Hans": "全选",
         "zh-Hant": "全選",
       },
       "Deselect-All": {
         en: "Hide All",
-        ja: "無",
+        ja: "全非表示",
         ko: "전체 선택 해제",
         "zh-Hans": "取消全选",
         "zh-Hant": "取消全選",
@@ -212,17 +252,13 @@ const LineSelector = forwardRef(({ language, lines, setLines }, ref) => {
   }
 
   return (
-    <div className="dropdown-content right-side dark-toggle" ref={ref}>
-      <button className="dropdown-line div-button selected" onClick={() => setAllLines(true)}>
-        <span className="metro-img">
-          <FontAwesomeIcon className="dropdown-icon" icon={faSquareCheck} />
-        </span>
+    <div className="line-selector dropdown-content right-side dark-toggle" ref={ref}>
+      <button className="dropdown-line div-button black selected" onClick={() => setAllLines(true)}>
+        <FontAwesomeIcon icon={faSquareCheck} className="dropdown-icon" />
         {translations["Select-All"]?.[language]}
       </button>
-      <button className="dropdown-line div-button unselected" onClick={() => setAllLines(false)}>
-        <span className="metro-img">
-          <FontAwesomeIcon className="dropdown-icon" icon={faSquareXmark} />
-        </span>
+      <button className="dropdown-line div-button black unselected" onClick={() => setAllLines(false)}>
+        <FontAwesomeIcon icon={faSquareXmark} className="dropdown-icon" />
         {translations["Deselect-All"]?.[language]}
       </button>
       {lines.map((line) => {
@@ -232,10 +268,11 @@ const LineSelector = forwardRef(({ language, lines, setLines }, ref) => {
         }
 
         return (
-          <button className={selected ? "dropdown-line div-button selected" : "dropdown-line div-button unselected"} onClick={() => toggleLineShown(line.id)}>
-            <span className="metro-img">
-              <img src={getLineImg(line.code[0])} className="metro-img" alt="" />
-            </span>
+          <button
+            className={selected ? "dropdown-line div-button black selected" : "dropdown-line div-button black unselected"}
+            onClick={() => toggleLineShown(line.id)}
+          >
+            <img src={getLineImg(line.code[0])} className="metro-img" alt="" />
             <p>{line.name[language]}</p>
           </button>
         );
@@ -245,11 +282,12 @@ const LineSelector = forwardRef(({ language, lines, setLines }, ref) => {
 });
 
 // Dropdown from navbar for settings
-const SettingsDropdown = forwardRef(({ language, setLanguage }, ref) => {
+const SettingsDropdown = forwardRef(({ language, setLanguage, setSettingsDropdown, setInfoPopup, popup_btn_ref }, ref) => {
   return (
     <div className="dropdown-content left-side dark-toggle" ref={ref}>
+      {/* Language selection */}
       <div className="dropdown-line settings-line">
-        <FontAwesomeIcon icon={faLanguage} className="settings-icon"></FontAwesomeIcon>
+        <FontAwesomeIcon icon={faLanguage} className="settings-icon enlarge" />
         <select
           value={language}
           onChange={(e) => {
@@ -263,6 +301,44 @@ const SettingsDropdown = forwardRef(({ language, setLanguage }, ref) => {
           <option value="ko">한국어</option>
         </select>
       </div>
+      {/* Information */}
+      <button
+        ref={popup_btn_ref}
+        className="dropdown-line settings-line div-button"
+        onClick={() => {
+          setInfoPopup(true);
+          setSettingsDropdown(false);
+        }}
+      >
+        <FontAwesomeIcon icon={faCircleInfo} className="settings-icon" />
+        <h3 className="link">About</h3>
+      </button>
+    </div>
+  );
+});
+
+// On screen info popup
+const InfoPopup = forwardRef(({ setInfoPopup }, ref) => {
+  return (
+    <div className="popup-content dark-toggle" ref={ref}>
+      <FontAwesomeIcon
+        icon={faCircleXmark}
+        className="exit button dark-toggle"
+        onClick={() => {
+          setInfoPopup(false);
+        }}
+      />
+      <h1>Tokyo Metro Interactive Map</h1>
+      <h3>Created by Zinn Morton</h3>
+      <div className="break" />
+      <h4>
+        Data from <a href="google.com">Public Transportation Open Data Center</a>
+      </h4>
+      <div className="break" />
+      <h4>Made using React, Vite, Express</h4>
+      <div className="break" />
+      <h4>Packages used: Leaflet, React Leaflet, Axios</h4>
+      <div className="break" />
     </div>
   );
 });

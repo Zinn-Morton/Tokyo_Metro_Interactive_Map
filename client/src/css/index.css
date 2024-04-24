@@ -1,11 +1,3 @@
-/* Light mode */
-
-.light {
-  --background-color: var(--white);
-  --compliment-color: var(--black);
-  --opposite-color: var(--black);
-}
-
 /* Container */
 
 .site-container {
