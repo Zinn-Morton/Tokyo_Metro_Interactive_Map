@@ -1,0 +1,74 @@
+/* Map stuff */
+
+.map-background {
+  width: 100%;
+  background-color: var(--background-color);
+  flex: 1;
+}
+
+.map {
+  background: rgba(0, 0, 0, 0);
+  height: 100%;
+  width: 100%;
+  z-index: 0;
+}
+
+.leaflet-popup-content-wrapper {
+  width: fit-content;
+}
+
+/* Background for map icon */
+.leaflet-marker-icon.leaflet-div-icon {
+  height: calc(var(--map-icon-size) + 8px) !important;
+  width: calc(var(--map-icon-size) + 8px) !important;
+  background: var(--background-color) !important;
+  border: none !important;
+  border-radius: 50% !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  outline: 1px solid var(--opposite-color) !important;
+}
+
+.map-icon {
+  height: var(--map-icon-size);
+  color: var(--opposite-color);
+}
+
+/* Map popup stuff */
+.leaflet-popup-content-wrapper {
+  width: fit-content !important;
+  background-color: var(--opposite-color);
+}
+
+.leaflet-popup-tip {
+  background-color: var(--opposite-color);
+}
+
+.leaflet-popup-content {
+  width: fit-content !important;
+}
+
+.popup-data {
+  width: fit-content;
+}
+
+.leaflet-popup-content h3 {
+  white-space: nowrap;
+  color: var(--background-color);
+}
+
+.map-popup-line {
+  display: flex;
+  align-items: center;
+  margin-top: 0.3rem;
+}
+
+.map-popup-line > img {
+  height: 1.8rem;
+  margin-right: 5px;
+}
+
+.map-popup-line > h3 {
+  display: inline;
+}

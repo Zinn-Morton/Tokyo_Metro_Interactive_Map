@@ -1,4 +1,5 @@
 function substringBeforeLastSpace(str) {
+  if (!str) return "";
   // Find the last index of space character
   const lastIndex = str.lastIndexOf(" ");
 

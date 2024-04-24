@@ -11,11 +11,13 @@ import "leaflet/dist/leaflet.css";
 
 // Fontawesome
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faTrain, faMagnifyingGlass, faCircleHalfStroke, faSquareCheck, faSquareXmark, faGear } from "@fortawesome/free-solid-svg-icons";
+import { faTrain, faMagnifyingGlass, faCircleHalfStroke, faSquareCheck, faSquareXmark, faGear, faLanguage } from "@fortawesome/free-solid-svg-icons";
 import { faMap } from "@fortawesome/free-regular-svg-icons";
 
 // CSS
 import "./index.css";
+import "./nav.css";
+import "./map.css";
 
 // My functions
 import { useImagePreloader } from "./useImagePreloader.jsx";
@@ -37,7 +39,8 @@ function Index() {
   const [geoHashmap, setGeoHashmap] = useState({});
   const [fetchInfoError, setFetchInfoError] = useState("");
 
-  // User toggles
+  // User settings
+  const [language, setLanguage] = useState("en");
   const [darkMode, setDarkMode] = useState(true);
   const [enableMap, setEnableMap] = useState(true);
 
@@ -85,36 +88,56 @@ function Index() {
 
   return (
     <div className="site-container">
-      <Nav toggleMap={toggleMap} toggleDarkMode={toggleDarkMode} stations={stations} setStations={setStations} lines={lines} setLines={setLines} />
+      <Nav
+        language={language}
+        setLanguage={setLanguage}
+        toggleMap={toggleMap}
+        toggleDarkMode={toggleDarkMode}
+        stations={stations}
+        setStations={setStations}
+        lines={lines}
+        setLines={setLines}
+      />
       <div className="map-container">
-        <MapComponent stations={stations} lines={lines} geoHashmap={geoHashmap} enableMap={enableMap} darkMode={darkMode} />
+        <MapComponent language={language} stations={stations} lines={lines} geoHashmap={geoHashmap} enableMap={enableMap} darkMode={darkMode} />
       </div>
     </div>
   );
 }
 
 // Navbar at top
-function Nav({ toggleMap, toggleDarkMode, lines, setLines }) {
+function Nav({ language, setLanguage, toggleMap, toggleDarkMode, lines, setLines }) {
   // Dropdown toggle for metro lines
   const [settingsDropdown, setSettingsDropdown] = useState(false);
   const [linesDropdown, setLinesDropdown] = useState(false);
 
-  // Closes dropdowns when clicked outside of
   const maptoggle_ref = useRef(null);
   const darkmode_ref = useRef(null);
+  const settings_dropdown_btn_ref = useRef(null);
   const settings_dropdown_ref = useRef(null);
   const lines_dropdown_btn_ref = useRef(null);
   const lines_dropdown_ref = useRef(null);
+
+  // Closes dropdowns when clicked outside of
   useClickOutside([lines_dropdown_btn_ref, lines_dropdown_ref, darkmode_ref, maptoggle_ref], () => {
     setLinesDropdown(false);
+  });
+
+  useClickOutside([settings_dropdown_btn_ref, settings_dropdown_ref, darkmode_ref, maptoggle_ref], () => {
+    setSettingsDropdown(false);
   });
 
   return (
     <nav className="site-nav dark-toggle">
       {/* Settings */}
       <div className="dropdown">
-        <FontAwesomeIcon icon={faGear} ref={settings_dropdown_ref} className="nav-icon dark-toggle" onClick={() => setSettingsDropdown(!settingsDropdown)} />
-        {settingsDropdown ? <SettingsDropdown /> : null}
+        <FontAwesomeIcon
+          icon={faGear}
+          ref={settings_dropdown_btn_ref}
+          className="nav-icon dark-toggle"
+          onClick={() => setSettingsDropdown(!settingsDropdown)}
+        />
+        {settingsDropdown ? <SettingsDropdown ref={settings_dropdown_ref} language={language} setLanguage={setLanguage} /> : null}
       </div>
       {/* Map toggle */}
       <FontAwesomeIcon icon={faMap} ref={maptoggle_ref} className="nav-icon dark-toggle" onClick={() => toggleMap()} />
@@ -123,7 +146,7 @@ function Nav({ toggleMap, toggleDarkMode, lines, setLines }) {
       {/* Metro lines selector */}
       <div className="dropdown">
         <FontAwesomeIcon icon={faTrain} className="nav-icon" ref={lines_dropdown_btn_ref} onClick={() => setLinesDropdown(!linesDropdown)} />
-        {linesDropdown ? <LineSelector ref={lines_dropdown_ref} lines={lines} setLines={setLines} /> : null}
+        {linesDropdown ? <LineSelector ref={lines_dropdown_ref} language={language} lines={lines} setLines={setLines} /> : null}
       </div>
       {/* Search */}
       <FontAwesomeIcon icon={faMagnifyingGlass} className="nav-icon nav-search" />
@@ -132,7 +155,30 @@ function Nav({ toggleMap, toggleDarkMode, lines, setLines }) {
 }
 
 // Dropdown from navbar to be able to select lines
-const LineSelector = forwardRef(({ lines, setLines }, ref) => {
+const LineSelector = forwardRef(({ language, lines, setLines }, ref) => {
+  const [translations, setTranslations] = useState({});
+
+  useEffect(() => {
+    const temp = {
+      "Select-All": {
+        en: "Show All",
+        ja: "全部",
+        ko: "전체 선택",
+        "zh-Hans": "全选",
+        "zh-Hant": "全選",
+      },
+      "Deselect-All": {
+        en: "Hide All",
+        ja: "無",
+        ko: "전체 선택 해제",
+        "zh-Hans": "取消全选",
+        "zh-Hant": "取消全選",
+      },
+    };
+
+    setTranslations(temp);
+  }, []);
+
   // Get chosen line ids in a simple list
   const chosen_line_ids = getChosenLineIds(lines);
 
@@ -171,13 +217,13 @@ const LineSelector = forwardRef(({ lines, setLines }, ref) => {
         <span className="metro-img">
           <FontAwesomeIcon className="dropdown-icon" icon={faSquareCheck} />
         </span>
-        Select All
+        {translations["Select-All"]?.[language]}
       </button>
       <button className="dropdown-line div-button unselected" onClick={() => setAllLines(false)}>
         <span className="metro-img">
           <FontAwesomeIcon className="dropdown-icon" icon={faSquareXmark} />
         </span>
-        Deselect All
+        {translations["Deselect-All"]?.[language]}
       </button>
       {lines.map((line) => {
         let selected = false;
@@ -190,7 +236,7 @@ const LineSelector = forwardRef(({ lines, setLines }, ref) => {
             <span className="metro-img">
               <img src={getLineImg(line.code[0])} className="metro-img" alt="" />
             </span>
-            <p>{substringBeforeLastSpace(line.name.en)}</p>
+            <p>{line.name[language]}</p>
           </button>
         );
       })}
@@ -199,19 +245,30 @@ const LineSelector = forwardRef(({ lines, setLines }, ref) => {
 });
 
 // Dropdown from navbar for settings
-const SettingsDropdown = forwardRef(({}, ref) => {
+const SettingsDropdown = forwardRef(({ language, setLanguage }, ref) => {
   return (
     <div className="dropdown-content left-side dark-toggle" ref={ref}>
-      <div className="dropdown-line">
-        <h3>Language</h3>
-        <select></select>
+      <div className="dropdown-line settings-line">
+        <FontAwesomeIcon icon={faLanguage} className="settings-icon"></FontAwesomeIcon>
+        <select
+          value={language}
+          onChange={(e) => {
+            setLanguage(e.target.value);
+          }}
+        >
+          <option value="en">English</option>
+          <option value="ja">日本語</option>
+          <option value="zh-Hans">{"中文 (简体字)"}</option>
+          <option value="zh-Hant">{"中文 (繁体字)"}</option>
+          <option value="ko">한국어</option>
+        </select>
       </div>
     </div>
   );
 });
 
 // Map
-function MapComponent({ stations, lines, enableMap, geoHashmap, darkMode }) {
+function MapComponent({ language, stations, lines, enableMap, geoHashmap, darkMode }) {
   const map_ref = useRef(null);
 
   // Show line when hovering over the line and hide when it gets far enough away from the popup
@@ -302,14 +359,14 @@ function MapComponent({ stations, lines, enableMap, geoHashmap, darkMode }) {
               <Marker className="dark-toggle" position={[station.geo.lat, station.geo.long]} width="30px" height="30px" icon={custom_icon}>
                 <Popup className="dark-toggle">
                   <div className="popup-data">
-                    <h3>{station.name.en}</h3>
+                    <h3>{station.name[language]}</h3>
                     <div className="line-imgs">
                       {station.railways.map((railway) => {
                         return (
                           <div className="map-popup-line">
                             <img className="dark-toggle" src={getStationImg(railway.code, railway.index)}></img>
                             <h3>
-                              {railway.name} {railway.index}
+                              {lines.find((line) => line.id === railway.id).name[language]} {railway.index}
                             </h3>
                           </div>
                         );
@@ -339,7 +396,7 @@ function MapComponent({ stations, lines, enableMap, geoHashmap, darkMode }) {
                     weight: 5,
                   }}
                   eventHandlers={{
-                    mouseover: (e) => handleMouseOver(e, line.name.en, getLineImg(line.code)),
+                    mouseover: (e) => handleMouseOver(e, line.name[language], getLineImg(line.code)),
                   }}
                 />
                 {/* The line itself */}

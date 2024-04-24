@@ -22,6 +22,19 @@
   background-color: var(--background-color);
 }
 
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+* {
+  --nav-height: 2rem;
+  --map-icon-size: 10px;
+  --metro-img-size: 1.5rem;
+  --nav-border-width: 2px;
+}
+
 /* Default flexbox */
 
 .flex {

@@ -27,7 +27,7 @@ const getInfo = asyncWrapper(async (req, res) => {
 
   // Extracts needed info from response_line
   const line_info = response_line.data.map((item) => {
-    const extracted_data = {
+    let extracted_data = {
       id: item["owl:sameAs"],
       name: {
         en: item[`odpt:railwayTitle`].en,
@@ -46,6 +46,13 @@ const getInfo = asyncWrapper(async (req, res) => {
       }),
       shown: true,
     };
+
+    // For some reason Marunouchi branch doesn't have chinese or korean names
+    if (extracted_data.id === "odpt.Railway:TokyoMetro.MarunouchiBranch") {
+      extracted_data.name.ko = "마루노우치선 지선";
+      extracted_data.name["zh-Hans"] = "丸之内支线";
+      extracted_data.name["zh-Hant"] = "丸之内支線";
+    }
 
     line_id_to_code.set(extracted_data.id, extracted_data.code);
 
@@ -94,7 +101,6 @@ const getInfo = asyncWrapper(async (req, res) => {
 
         return {
           id: railway_id,
-          name: railway_id.split(".").pop(),
           code: line_id_to_code.get(railway_id),
           index: line_info.find((line) => line.id === railway_id).stationOrder.find((item) => item.station === id).index,
         };
