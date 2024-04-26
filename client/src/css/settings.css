@@ -1,0 +1,33 @@
+/* Images  */
+
+.settings-icon {
+  height: 80%;
+  width: 3rem;
+}
+
+.settings-icon.enlarge {
+  height: 100%;
+}
+
+/* Settings */
+
+.settings-line {
+  height: 2.5rem;
+}
+
+.settings-label {
+  margin-right: 5px;
+}
+
+.settings-line > * {
+  margin-left: 7px;
+}
+
+.settings-line > *:first-of-type {
+  margin-left: 0;
+}
+
+select {
+  padding: 1px 5px;
+  height: 85%;
+}

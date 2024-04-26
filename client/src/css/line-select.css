@@ -1,0 +1,41 @@
+* {
+  --metro-img-size: 1.5rem;
+  --metro-img-size-mobile: 2rem;
+}
+
+/* Line selector */
+.line-selector p {
+  font-size: 100%;
+}
+
+/* Button stuff */
+
+.dropdown-line.unselected {
+  background-color: var(--unselected-color);
+}
+
+.dropdown-line.selected {
+  background-color: var(--selected-color);
+}
+
+/* Images */
+
+.metro-img,
+.dropdown-icon {
+  height: var(--metro-img-size);
+  width: var(--metro-img-size);
+  margin-right: 5px;
+}
+
+.metro-img {
+  background-color: var(--black);
+  border-radius: 20%;
+}
+
+/* Mobile */
+@media screen and (max-aspect-ratio: 3/4) {
+  /* Make nav bigger */
+  * {
+    --metro-img-size: var(--metro-img-size-mobile);
+  }
+}
