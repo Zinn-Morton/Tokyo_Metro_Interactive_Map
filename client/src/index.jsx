@@ -1,12 +1,10 @@
 // Basic stuff
-import { useState, useEffect, useRef, useLayoutEffect, forwardRef } from "react";
+import { useState, useEffect, useRef, useContext, createContext, forwardRef } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import axios from "axios";
 
 // Map stuff
 import { MapContainer, useMapEvents, TileLayer, Marker, Popup, Polyline, ZoomControl } from "react-leaflet";
-import { divIcon, popup } from "leaflet";
-import L from "leaflet";
+import { divIcon } from "leaflet";
 import "leaflet/dist/leaflet.css";
 
 // Fontawesome
@@ -41,30 +39,43 @@ import { useClickOutside } from "./hooks/useClickOutside.jsx";
 // My functions
 import { fetchMetroInfo } from "./functions/fetchMetroInfo.jsx";
 import { getStationImg, getLineImg } from "./functions/getMetroImg.jsx";
-import { substringBeforeLastSpace } from "./functions/stringFunc.jsx";
 import { getChosenLineIds } from "./functions/getChosenLineIds.jsx";
 
 // URL of backend - TODO: change on launch
 const url = "http://localhost:5000";
 // const url = "https://task-manager-self.fly.dev";
 
-// Webpage container
+// Contexts
+const MetroContext = createContext();
+const SettingsContext = createContext();
+
 function Index() {
   // Data about the stations and lines fetched from the backend
   const [stations, setStations] = useState([]);
   const [lines, setLines] = useState([]);
   const [geoHashmap, setGeoHashmap] = useState({});
-  const [fetchInfoError, setFetchInfoError] = useState("");
 
   // User settings
   const [language, setLanguage] = useState("en");
-  const [languageList, setLanguageList] = useState([]);
   const [darkMode, setDarkMode] = useState(true);
   const [enableMap, setEnableMap] = useState(true);
 
+  const [languageList, setLanguageList] = useState([]);
+
+  function toggleMap() {
+    setEnableMap(!enableMap);
+  }
+
+  function toggleDarkMode() {
+    setDarkMode(!darkMode);
+  }
+
+  // Preloads images
+  const imagesLoaded = useImagePreloader(stations, lines);
+
   // Initial render
   useEffect(() => {
-    fetchMetroInfo(url, setStations, setLines, setGeoHashmap, setFetchInfoError);
+    fetchMetroInfo(url, setStations, setLines, setGeoHashmap);
 
     setLanguageList([
       {
@@ -90,9 +101,6 @@ function Index() {
     ]);
   }, []);
 
-  // Preloads images
-  const imagesLoaded = useImagePreloader(stations, lines);
-
   // Sets shown/unshown stations depending on which lines are shown
   useEffect(() => {
     let new_stations = [...stations];
@@ -114,38 +122,54 @@ function Index() {
     setStations(new_stations);
   }, [lines]);
 
-  // Two user toggle functions
-  function toggleMap() {
-    setEnableMap(!enableMap);
-  }
+  return (
+    <SettingsContext.Provider
+      value={{
+        language: language,
+        setLanguage: setLanguage,
+        languageList: languageList,
+        darkMode: darkMode,
+        setDarkMode: setDarkMode,
+        toggleDarkMode: toggleDarkMode,
+        enableMap: enableMap,
+        setEnableMap: setEnableMap,
+        toggleMap: toggleMap,
+      }}
+    >
+      <MetroContext.Provider
+        value={{
+          stations: stations,
+          setStations: setStations,
+          lines: lines,
+          setLines: setLines,
+          geoHashmap: geoHashmap,
+        }}
+      >
+        <Site />
+      </MetroContext.Provider>
+    </SettingsContext.Provider>
+  );
+}
 
-  // Dark mode toggle
-  function toggleDarkMode() {
-    setDarkMode(!darkMode);
-  }
+// Webpage container
+function Site() {
+  const { darkMode } = useContext(SettingsContext);
 
   return (
     <div className={`site-container ${darkMode ? "" : "light"}`}>
-      <Nav
-        language={language}
-        setLanguage={setLanguage}
-        languageList={languageList}
-        toggleMap={toggleMap}
-        darkMode={darkMode}
-        toggleDarkMode={toggleDarkMode}
-        stations={stations}
-        lines={lines}
-        setLines={setLines}
-      />
+      <Nav />
       <div className="map-container">
-        <MapComponent language={language} stations={stations} lines={lines} geoHashmap={geoHashmap} enableMap={enableMap} darkMode={darkMode} />
+        <MapComponent />
       </div>
     </div>
   );
 }
 
 // Navbar at top
-function Nav({ language, setLanguage, languageList, toggleMap, darkMode, toggleDarkMode, stations, lines, setLines }) {
+function Nav() {
+  const { toggleDarkMode, toggleMap } = useContext(SettingsContext);
+  const { stations, lines, setLines } = useContext(MetroContext);
+
   // Popup toggle
   const [infoPopup, setInfoPopup] = useState(false);
 
@@ -189,27 +213,18 @@ function Nav({ language, setLanguage, languageList, toggleMap, darkMode, toggleD
         <div className="dropdown">
           <FontAwesomeIcon icon={faGear} ref={settings_dropdown_btn_ref} className="nav-icon button" onClick={() => setSettingsDropdown(!settingsDropdown)} />
           {settingsDropdown ? (
-            <SettingsDropdown
-              ref={settings_dropdown_ref}
-              language={language}
-              setLanguage={setLanguage}
-              languageList={languageList}
-              setSettingsDropdown={setSettingsDropdown}
-              setInfoPopup={setInfoPopup}
-              popup_btn_ref={popup_btn_ref}
-              darkMode={darkMode}
-            />
+            <SettingsDropdown ref={settings_dropdown_ref} setSettingsDropdown={setSettingsDropdown} setInfoPopup={setInfoPopup} popup_btn_ref={popup_btn_ref} />
           ) : null}
         </div>
         {/* Map toggle */}
-        <FontAwesomeIcon icon={faMap} ref={maptoggle_ref} className="nav-icon button" onClick={() => toggleMap()} />
+        <FontAwesomeIcon icon={faMap} ref={maptoggle_ref} className="nav-icon button" onClick={toggleMap} />
         {/* Dark mode toggle */}
         {/* <h2 className="site-title">Site Title</h2> */}
-        <FontAwesomeIcon icon={faCircleHalfStroke} ref={darkmode_ref} className="nav-icon button" onClick={() => toggleDarkMode()} />
+        <FontAwesomeIcon icon={faCircleHalfStroke} ref={darkmode_ref} className="nav-icon button" onClick={toggleDarkMode} />
         {/* Metro lines selector */}
         <div className="line-select-btn dropdown">
           <FontAwesomeIcon icon={faTrain} className="nav-icon button" ref={lines_dropdown_btn_ref} onClick={() => setLinesDropdown(!linesDropdown)} />
-          {linesDropdown ? <LineSelector ref={lines_dropdown_ref} language={language} lines={lines} setLines={setLines} darkMode={darkMode} /> : null}
+          {linesDropdown ? <LineSelector ref={lines_dropdown_ref} /> : null}
         </div>
         {/* Search */}
         <div className="dropdown">
@@ -219,17 +234,20 @@ function Nav({ language, setLanguage, languageList, toggleMap, darkMode, toggleD
             ref={search_dropdown_btn_ref}
             onClick={() => setSearchDropdown(!searchDropdown)}
           />
-          {searchDropdown ? <SearchComponent ref={search_dropdown_ref} language={language} stations={stations} lines={lines} /> : null}
+          {searchDropdown ? <SearchComponent ref={search_dropdown_ref} /> : null}
         </div>
       </nav>
       {/* Info popup */}
-      {infoPopup ? <InfoPopup ref={popup_ref} setInfoPopup={setInfoPopup} darkMode={darkMode} /> : null}
+      {infoPopup ? <InfoPopup ref={popup_ref} setInfoPopup={setInfoPopup} /> : null}
     </>
   );
 }
 
 // Dropdown from navbar to be able to select lines
-const LineSelector = forwardRef(({ language, lines, setLines, darkMode }, ref) => {
+const LineSelector = forwardRef(({}, ref) => {
+  const { language } = useContext(SettingsContext);
+  const { lines, setLines } = useContext(MetroContext);
+
   const [translations, setTranslations] = useState({});
 
   useEffect(() => {
@@ -255,7 +273,6 @@ const LineSelector = forwardRef(({ language, lines, setLines, darkMode }, ref) =
 
   // Get chosen line ids in a simple list
   const chosen_line_ids = getChosenLineIds(lines);
-
   if (lines) {
     lines.forEach((line) => {
       if (line.shown && !chosen_line_ids.includes(line.id)) {
@@ -316,7 +333,9 @@ const LineSelector = forwardRef(({ language, lines, setLines, darkMode }, ref) =
 });
 
 // Dropdown from navbar for settings
-const SettingsDropdown = forwardRef(({ language, setLanguage, languageList, setSettingsDropdown, setInfoPopup, popup_btn_ref }, ref) => {
+const SettingsDropdown = forwardRef(({ setSettingsDropdown, setInfoPopup, popup_btn_ref }, ref) => {
+  const { language, setLanguage, languageList } = useContext(SettingsContext);
+
   return (
     <div className="dropdown-content left-side" ref={ref}>
       {/* Language selection */}
@@ -350,7 +369,7 @@ const SettingsDropdown = forwardRef(({ language, setLanguage, languageList, setS
 });
 
 // Search dropdown
-const SearchComponent = forwardRef(({ language, stations, lines }, ref) => {
+const SearchComponent = forwardRef(({ stations, lines }, ref) => {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
 
@@ -360,7 +379,7 @@ const SearchComponent = forwardRef(({ language, stations, lines }, ref) => {
   }
 
   function getResults(q) {
-    const station_matches = stations.filter((station) => station.name[language].includes(q));
+    // const station_matches = stations.filter((station) => station.name[language].includes(q));
   }
 
   return (
@@ -393,7 +412,10 @@ const InfoPopup = forwardRef(({ setInfoPopup }, ref) => {
       <h3>Created by Zinn Morton</h3>
       <div className="break" />
       <h4>
-        Data from <a href="google.com">Public Transportation Open Data Center</a>
+        Data from{" "}
+        <a href="https://developer.odpt.org/en/info" target="_blank">
+          Public Transportation Open Data Center
+        </a>
       </h4>
       <div className="break" />
       <h4>Made using React, Vite, Express</h4>
@@ -405,7 +427,10 @@ const InfoPopup = forwardRef(({ setInfoPopup }, ref) => {
 });
 
 // Map
-function MapComponent({ language, stations, lines, enableMap, geoHashmap, darkMode }) {
+function MapComponent() {
+  const { language, enableMap, darkMode } = useContext(SettingsContext);
+  const { stations, lines, geoHashmap } = useContext(MetroContext);
+
   const map_ref = useRef(null);
 
   // Show line when hovering over the line and hide when it gets far enough away from the popup
