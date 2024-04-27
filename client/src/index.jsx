@@ -71,12 +71,14 @@ const default_settings = {
   language: "en",
 };
 const TranslationContext = createContext();
+const MapContext = createContext();
 
 function Index() {
   // Data about the stations and lines fetched from the backend
   const [stations, setStations] = useState([]);
   const [lines, setLines] = useState([]);
   const [geoHashmap, setGeoHashmap] = useState({});
+  const [searchedStationId, setSearchedStationId] = useState(null);
 
   // User settings
   const [language, setLanguage] = useState(default_settings.language);
@@ -148,6 +150,18 @@ function Index() {
     setStations(new_stations);
   }, [lines]);
 
+  // Map stuff since it needs to be in the context
+  const map_ref = useRef(null);
+  const popup_refs = useRef({});
+
+  // Function to open a station popup
+  function openStationPopup(station_id) {
+    // Find the popup ref
+    const popup_ref = popup_refs.current[station_id];
+
+    popup_ref.openOn();
+  }
+
   return (
     <SettingsContext.Provider
       value={{
@@ -163,17 +177,27 @@ function Index() {
       }}
     >
       <TranslationContext.Provider value={getTranslations()}>
-        <MetroContext.Provider
+        <MapContext.Provider
           value={{
-            stations: stations,
-            setStations: setStations,
-            lines: lines,
-            setLines: setLines,
-            geoHashmap: geoHashmap,
+            map_ref: map_ref,
+            popup_refs: popup_refs,
+            openStationPopup: openStationPopup,
           }}
         >
-          <Site />
-        </MetroContext.Provider>
+          <MetroContext.Provider
+            value={{
+              stations: stations,
+              setStations: setStations,
+              lines: lines,
+              setLines: setLines,
+              geoHashmap: geoHashmap,
+              searchedStationId: searchedStationId,
+              setSearchedStationId: setSearchedStationId,
+            }}
+          >
+            <Site />
+          </MetroContext.Provider>
+        </MapContext.Provider>
       </TranslationContext.Provider>
     </SettingsContext.Provider>
   );
@@ -185,7 +209,7 @@ function Site() {
 
   return (
     <div className={`site-container ${darkMode ? "" : "light"}`}>
-      <Nav />
+      <NavComponent />
       <div className="map-container">
         <MapComponent />
       </div>
@@ -194,7 +218,7 @@ function Site() {
 }
 
 // Navbar at top
-function Nav() {
+function NavComponent({}) {
   const { toggleDarkMode, toggleMap } = useContext(SettingsContext);
 
   // Popup toggle
@@ -304,6 +328,7 @@ function Nav() {
           <SearchComponent
             ref={search_dropdown_ref}
             searchDropdown={searchDropdown}
+            setSearchDropdown={setSearchDropdown}
           />
         </div>
       </nav>
@@ -453,132 +478,145 @@ const SettingsDropdown = forwardRef(
 );
 
 // Search dropdown
-const SearchComponent = forwardRef(({ searchDropdown }, ref) => {
-  const { language, languageList } = useContext(SettingsContext);
-  const translations = useContext(TranslationContext);
-  const { stations, lines } = useContext(MetroContext);
+const SearchComponent = forwardRef(
+  ({ searchDropdown, setSearchDropdown }, ref) => {
+    const { language, languageList } = useContext(SettingsContext);
+    const translations = useContext(TranslationContext);
+    const { openStationPopup } = useContext(MapContext);
+    const { stations, lines, setSearchedStationId } = useContext(MetroContext);
 
-  // Query and results
-  const [query, setQuery] = useState("");
-  const [results, setResults] = useState({
-    station_matches: [],
-    line_matches: [],
-  });
+    // Query and results
+    const [query, setQuery] = useState("");
+    const [results, setResults] = useState({
+      station_matches: [],
+      line_matches: [],
+    });
 
-  // Ref for input
-  const searchbox_ref = useRef(null);
+    // Ref for input
+    const searchbox_ref = useRef(null);
 
-  // Focus search when dropdown opens
-  useEffect(() => {
-    if (searchDropdown) {
-      searchbox_ref.current.focus();
-    }
-  });
+    // Focus search when dropdown opens
+    useEffect(() => {
+      if (searchDropdown) {
+        searchbox_ref.current.focus();
+      }
+    });
 
-  // Update results when query changes
-  useEffect(() => {
-    if (query != "") {
-      getResults(query);
-    } else {
-      setResults({
-        station_matches: [],
-        line_matches: [],
+    // Update results when query changes
+    useEffect(() => {
+      if (query != "") {
+        getResults(query);
+      } else {
+        setResults({
+          station_matches: [],
+          line_matches: [],
+        });
+      }
+    }, [query]);
+
+    // Searches for matching items in an object (i.e stations or lines)
+    function filterFromObject(q, obj) {
+      return obj.filter((item) => {
+        const name = item.name;
+
+        for (const { code } of languageList) {
+          if (name[code].toLowerCase().includes(q.toLowerCase())) {
+            return true;
+          }
+        }
+
+        return false;
       });
     }
-  }, [query]);
 
-  // Searches for matching items in an object (i.e stations or lines)
-  function filterFromObject(q, obj) {
-    return obj.filter((item) => {
-      const name = item.name;
+    // Gets results from query
+    function getResults(q) {
+      const station_matches = filterFromObject(q, stations);
+      const line_matches = filterFromObject(q, lines);
 
-      for (const { code } of languageList) {
-        if (name[code].toLowerCase().includes(q.toLowerCase())) {
-          return true;
-        }
-      }
+      setResults({
+        station_matches: [...station_matches],
+        line_matches: [...line_matches],
+      });
+    }
 
-      return false;
-    });
-  }
+    // Opens station popup on map when clicking search result
+    function handleSearchClick(station_id) {
+      setSearchedStationId(station_id);
+      setSearchDropdown(false);
+      openStationPopup(station_id);
+    }
 
-  // Gets results from query
-  function getResults(q) {
-    const station_matches = filterFromObject(q, stations);
-    const line_matches = filterFromObject(q, lines);
-
-    setResults({
-      station_matches: [...station_matches],
-      line_matches: [...line_matches],
-    });
-  }
-
-  return searchDropdown ? (
-    <div className="dropdown-content right-side" ref={ref}>
-      {/* Search input */}
-      <div className="dropdown-line search-line">
-        <FontAwesomeIcon
-          icon={faMagnifyingGlass}
-          className="search-side-icon"
-        ></FontAwesomeIcon>
-        <input
-          type="text"
-          ref={searchbox_ref}
-          className="search-input"
-          placeholder="..."
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
-      </div>
-      {/* Search results */}
-      <div className="search-results">
-        <div className="dropdown-line label-line">
-          <h3>{translations["Stations"][language]}:</h3>
+    return searchDropdown ? (
+      <div className="dropdown-content right-side" ref={ref}>
+        {/* Search input */}
+        <div className="dropdown-line search-line">
+          <FontAwesomeIcon
+            icon={faMagnifyingGlass}
+            className="search-side-icon"
+          ></FontAwesomeIcon>
+          <input
+            type="text"
+            ref={searchbox_ref}
+            className="search-input"
+            placeholder="..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
         </div>
-        {results.station_matches.length != 0 ? (
-          <div className="station-results">
-            {results.station_matches.map((result) => {
-              return (
-                <DropdownTrainLine
-                  button_class="dropdown-line div-button"
-                  left_elem={
-                    <FontAwesomeIcon
-                      icon={faTrain}
-                      className="dropdown-icon background"
-                    />
-                  }
-                  p_text={result.name[language]}
-                />
-              );
-            })}
+        {/* Search results */}
+        <div className="search-results">
+          {/* Station results */}
+          <div className="dropdown-line label-line">
+            <h3>{translations["Stations"][language]}:</h3>
           </div>
-        ) : null}
-        <div className="dropdown-line label-line">
-          <h3>{translations["Lines"][language]}:</h3>
+          {results.station_matches.length != 0 ? (
+            <div className="station-results">
+              {results.station_matches.map((station) => {
+                return (
+                  <DropdownTrainLine
+                    button_class="dropdown-line div-button"
+                    onClick={() => handleSearchClick(station.id)}
+                    left_elem={
+                      <FontAwesomeIcon
+                        icon={faTrain}
+                        className="dropdown-icon background"
+                      />
+                    }
+                    p_text={station.name[language]}
+                  />
+                );
+              })}
+            </div>
+          ) : null}
+          {/* Line results */}
+          <div className="dropdown-line label-line">
+            <h3>{translations["Lines"][language]}:</h3>
+          </div>
+          {results.line_matches.length != 0 ? (
+            <div className="lines-results">
+              {results.line_matches.map((line) => {
+                return (
+                  <DropdownTrainLine
+                    button_class="dropdown-line div-button"
+                    left_elem={
+                      <img
+                        src={getLineImg(line.code[0])}
+                        className="metro-img"
+                        alt=""
+                      />
+                    }
+                    p_text={line.name[language]}
+                  />
+                );
+              })}
+            </div>
+          ) : null}
         </div>
-        {results.line_matches.length != 0 ? (
-          <div className="lines-results">
-            {results.line_matches.map((result) => {
-              return (
-                <DropdownTrainLine
-                  button_class="dropdown-line div-button"
-                  left_elem={
-                    <img
-                      src={getLineImg(result.code[0])}
-                      className="metro-img"
-                      alt=""
-                    />
-                  }
-                  p_text={result.name[language]}
-                />
-              );
-            })}
-          </div>
-        ) : null}
       </div>
-    </div>
-  ) : null;
-});
+    ) : null;
+  }
+);
 
 // On screen info popup
 const InfoPopup = forwardRef(({ setInfoPopup }, ref) => {
@@ -612,11 +650,9 @@ const InfoPopup = forwardRef(({ setInfoPopup }, ref) => {
 // Map
 function MapComponent() {
   const { language, enableMap, darkMode } = useContext(SettingsContext);
-  const { stations, lines, geoHashmap } = useContext(MetroContext);
-
-  const map_ref = useRef(null);
-
-  // Open station popup externally (from search)
+  const { map_ref, popup_refs, openStationPopup } = useContext(MapContext);
+  const { stations, lines, geoHashmap, searchedStationId } =
+    useContext(MetroContext);
 
   // Show line when hovering over the line and hide when it gets far enough away from the popup
   // The following code is pretty fucked up and idk how it works.
@@ -631,7 +667,7 @@ function MapComponent() {
   useEffect(() => {
     setShowMouseOverPopup(false);
     setInitialPopupHidden(false);
-  }, [lines]);
+  }, []);
 
   // Show popup
   function handleMouseOver(e, name, img) {
@@ -682,6 +718,8 @@ function MapComponent() {
     html: icon_markup,
   });
 
+  console.log(initialPopupHidden);
+
   return (
     <>
       {/* Div to color background if map is disabled */}
@@ -707,21 +745,28 @@ function MapComponent() {
           <ZoomControl position="bottomleft" />
           {/* Maps stations into markers on the map */}
           {stations.map((station) => {
-            if (!station.shown) {
+            if (!station.shown && station.id !== searchedStationId) {
               return null;
             }
 
             const code = station.railways[0].code;
             const index = station.railways[0].index;
-
             return (
               <Marker
+                id={station.id}
                 position={[station.geo.lat, station.geo.long]}
                 width="30px"
                 height="30px"
                 icon={custom_icon}
               >
-                <Popup>
+                <Popup
+                  id={station.id}
+                  ref={(el) => {
+                    if (popup_refs && !(el in popup_refs.current)) {
+                      popup_refs.current[station.id] = el;
+                    }
+                  }}
+                >
                   <div className="popup-data">
                     <h3>{station.name[language]}</h3>
                     <div className="line-imgs">
