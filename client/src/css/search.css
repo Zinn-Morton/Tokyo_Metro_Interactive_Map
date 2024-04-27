@@ -2,6 +2,8 @@
   --search-height: calc(var(--dropdown-line-height) * 0.8);
 }
 
+/* Input */
+
 .search-input {
   color: var(--opposite-color);
   width: 30vw;
@@ -25,6 +27,28 @@
   height: calc(var(--search-height) * 0.65);
   border: calc(var(--search-height) * 0.175) solid var(--background-color);
   border-radius: 5px 0 0 5px;
+}
+
+/* Results */
+
+.search-results {
+  outline: calc(var(--nav-border-width) * 0.5) solid var(--black);
+  max-height: calc(100vh - var(--nav-height) - var(--dropdown-line-height));
+  overflow-y: auto;
+  border-radius: inherit;
+}
+
+.search-results > .dropdown-line:last-of-type {
+  border-radius: inherit;
+}
+
+.dropdown-icon.background {
+  width: calc(var(--metro-img-size) * 0.8);
+  height: calc(var(--metro-img-size) * 0.8);
+  border: calc(var(--metro-img-size) * 0.1) solid var(--black);
+  border-radius: 20%;
+  background: var(--black);
+  color: var(--white);
 }
 
 /* Mobile */

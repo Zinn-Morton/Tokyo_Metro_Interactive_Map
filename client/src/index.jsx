@@ -1,9 +1,24 @@
 // Basic stuff
-import { useState, useEffect, useRef, useContext, createContext, forwardRef } from "react";
+import {
+  useState,
+  useEffect,
+  useRef,
+  useContext,
+  createContext,
+  forwardRef,
+} from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 // Map stuff
-import { MapContainer, useMapEvents, TileLayer, Marker, Popup, Polyline, ZoomControl } from "react-leaflet";
+import {
+  MapContainer,
+  useMapEvents,
+  TileLayer,
+  Marker,
+  Popup,
+  Polyline,
+  ZoomControl,
+} from "react-leaflet";
 import { divIcon } from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -40,6 +55,8 @@ import { useClickOutside } from "./hooks/useClickOutside.jsx";
 import { fetchMetroInfo } from "./functions/fetchMetroInfo.jsx";
 import { getStationImg, getLineImg } from "./functions/getMetroImg.jsx";
 import { getChosenLineIds } from "./functions/getChosenLineIds.jsx";
+import { getLanguageList } from "./functions/getLanguageList.jsx";
+import { getTranslations } from "./functions/getTranslations.jsx";
 
 // URL of backend - TODO: change on launch
 const url = "http://localhost:5000";
@@ -48,6 +65,12 @@ const url = "http://localhost:5000";
 // Contexts
 const MetroContext = createContext();
 const SettingsContext = createContext();
+const default_settings = {
+  darkMode: true,
+  enableMap: true,
+  language: "en",
+};
+const TranslationContext = createContext();
 
 function Index() {
   // Data about the stations and lines fetched from the backend
@@ -56,10 +79,9 @@ function Index() {
   const [geoHashmap, setGeoHashmap] = useState({});
 
   // User settings
-  const [language, setLanguage] = useState("en");
-  const [darkMode, setDarkMode] = useState(true);
-  const [enableMap, setEnableMap] = useState(true);
-
+  const [language, setLanguage] = useState(default_settings.language);
+  const [darkMode, setDarkMode] = useState(default_settings.darkMode);
+  const [enableMap, setEnableMap] = useState(default_settings.enableMap);
   const [languageList, setLanguageList] = useState([]);
 
   function toggleMap() {
@@ -70,35 +92,39 @@ function Index() {
     setDarkMode(!darkMode);
   }
 
-  // Preloads images
-  const imagesLoaded = useImagePreloader(stations, lines);
+  // Load user settings from browser
+  useEffect(() => {
+    try {
+      const settings = JSON.parse(localStorage.getItem("settings"));
+      setLanguage(settings.language);
+      setDarkMode(settings.darkMode);
+      setEnableMap(settings.enableMap);
+    } catch {
+      setLanguage(default_settings.language);
+      setDarkMode(default_settings.darkMode);
+      setEnableMap(default_settings.enableMap);
+    }
+  }, []);
 
-  // Initial render
+  // Save user settings to browser
+  useEffect(() => {
+    localStorage.setItem(
+      "settings",
+      JSON.stringify({
+        darkMode: darkMode,
+        enableMap: enableMap,
+        language: language,
+      })
+    );
+  }, [language, darkMode, enableMap]);
+
+  // Preloads images
+  useImagePreloader(stations, lines);
+
+  // Initial render data fetch
   useEffect(() => {
     fetchMetroInfo(url, setStations, setLines, setGeoHashmap);
-
-    setLanguageList([
-      {
-        code: "en",
-        name: "English",
-      },
-      {
-        code: "ja",
-        name: "日本語",
-      },
-      {
-        code: "zh-Hans",
-        name: "中文 (简体字)",
-      },
-      {
-        code: "zh-Hant",
-        name: "中文 (繁体字)",
-      },
-      {
-        code: "ko",
-        name: "한국어",
-      },
-    ]);
+    setLanguageList(getLanguageList());
   }, []);
 
   // Sets shown/unshown stations depending on which lines are shown
@@ -136,17 +162,19 @@ function Index() {
         toggleMap: toggleMap,
       }}
     >
-      <MetroContext.Provider
-        value={{
-          stations: stations,
-          setStations: setStations,
-          lines: lines,
-          setLines: setLines,
-          geoHashmap: geoHashmap,
-        }}
-      >
-        <Site />
-      </MetroContext.Provider>
+      <TranslationContext.Provider value={getTranslations()}>
+        <MetroContext.Provider
+          value={{
+            stations: stations,
+            setStations: setStations,
+            lines: lines,
+            setLines: setLines,
+            geoHashmap: geoHashmap,
+          }}
+        >
+          <Site />
+        </MetroContext.Provider>
+      </TranslationContext.Provider>
     </SettingsContext.Provider>
   );
 }
@@ -168,7 +196,6 @@ function Site() {
 // Navbar at top
 function Nav() {
   const { toggleDarkMode, toggleMap } = useContext(SettingsContext);
-  const { stations, lines, setLines } = useContext(MetroContext);
 
   // Popup toggle
   const [infoPopup, setInfoPopup] = useState(false);
@@ -178,6 +205,7 @@ function Nav() {
   const [linesDropdown, setLinesDropdown] = useState(false);
   const [searchDropdown, setSearchDropdown] = useState(false);
 
+  // A bunch of references
   const maptoggle_ref = useRef(null);
   const darkmode_ref = useRef(null);
   const settings_dropdown_btn_ref = useRef(null);
@@ -190,17 +218,31 @@ function Nav() {
   const popup_ref = useRef(null);
 
   // Closes dropdowns / popups when clicked outside of
-  useClickOutside([lines_dropdown_btn_ref, lines_dropdown_ref, darkmode_ref, maptoggle_ref], () => {
-    setLinesDropdown(false);
-  });
+  useClickOutside(
+    [lines_dropdown_btn_ref, lines_dropdown_ref, darkmode_ref, maptoggle_ref],
+    () => {
+      setLinesDropdown(false);
+    }
+  );
 
-  useClickOutside([settings_dropdown_btn_ref, settings_dropdown_ref, darkmode_ref, maptoggle_ref], () => {
-    setSettingsDropdown(false);
-  });
+  useClickOutside(
+    [
+      settings_dropdown_btn_ref,
+      settings_dropdown_ref,
+      darkmode_ref,
+      maptoggle_ref,
+    ],
+    () => {
+      setSettingsDropdown(false);
+    }
+  );
 
-  useClickOutside([search_dropdown_btn_ref, search_dropdown_ref, darkmode_ref, maptoggle_ref], () => {
-    setSearchDropdown(false);
-  });
+  useClickOutside(
+    [search_dropdown_btn_ref, search_dropdown_ref, darkmode_ref, maptoggle_ref],
+    () => {
+      setSearchDropdown(false);
+    }
+  );
 
   useClickOutside([popup_btn_ref, popup_ref, darkmode_ref], () => {
     setInfoPopup(false);
@@ -211,19 +253,44 @@ function Nav() {
       <nav className="site-nav">
         {/* Settings */}
         <div className="dropdown">
-          <FontAwesomeIcon icon={faGear} ref={settings_dropdown_btn_ref} className="nav-icon button" onClick={() => setSettingsDropdown(!settingsDropdown)} />
+          <FontAwesomeIcon
+            icon={faGear}
+            ref={settings_dropdown_btn_ref}
+            className="nav-icon button"
+            onClick={() => setSettingsDropdown(!settingsDropdown)}
+          />
           {settingsDropdown ? (
-            <SettingsDropdown ref={settings_dropdown_ref} setSettingsDropdown={setSettingsDropdown} setInfoPopup={setInfoPopup} popup_btn_ref={popup_btn_ref} />
+            <SettingsDropdown
+              ref={settings_dropdown_ref}
+              setSettingsDropdown={setSettingsDropdown}
+              setInfoPopup={setInfoPopup}
+              popup_btn_ref={popup_btn_ref}
+            />
           ) : null}
         </div>
         {/* Map toggle */}
-        <FontAwesomeIcon icon={faMap} ref={maptoggle_ref} className="nav-icon button" onClick={toggleMap} />
+        <FontAwesomeIcon
+          icon={faMap}
+          ref={maptoggle_ref}
+          className="nav-icon button"
+          onClick={toggleMap}
+        />
         {/* Dark mode toggle */}
         {/* <h2 className="site-title">Site Title</h2> */}
-        <FontAwesomeIcon icon={faCircleHalfStroke} ref={darkmode_ref} className="nav-icon button" onClick={toggleDarkMode} />
+        <FontAwesomeIcon
+          icon={faCircleHalfStroke}
+          ref={darkmode_ref}
+          className="nav-icon button"
+          onClick={toggleDarkMode}
+        />
         {/* Metro lines selector */}
         <div className="line-select-btn dropdown">
-          <FontAwesomeIcon icon={faTrain} className="nav-icon button" ref={lines_dropdown_btn_ref} onClick={() => setLinesDropdown(!linesDropdown)} />
+          <FontAwesomeIcon
+            icon={faTrain}
+            className="nav-icon button"
+            ref={lines_dropdown_btn_ref}
+            onClick={() => setLinesDropdown(!linesDropdown)}
+          />
           {linesDropdown ? <LineSelector ref={lines_dropdown_ref} /> : null}
         </div>
         {/* Search */}
@@ -234,11 +301,16 @@ function Nav() {
             ref={search_dropdown_btn_ref}
             onClick={() => setSearchDropdown(!searchDropdown)}
           />
-          {searchDropdown ? <SearchComponent ref={search_dropdown_ref} /> : null}
+          <SearchComponent
+            ref={search_dropdown_ref}
+            searchDropdown={searchDropdown}
+          />
         </div>
       </nav>
       {/* Info popup */}
-      {infoPopup ? <InfoPopup ref={popup_ref} setInfoPopup={setInfoPopup} /> : null}
+      {infoPopup ? (
+        <InfoPopup ref={popup_ref} setInfoPopup={setInfoPopup} />
+      ) : null}
     </>
   );
 }
@@ -246,30 +318,8 @@ function Nav() {
 // Dropdown from navbar to be able to select lines
 const LineSelector = forwardRef(({}, ref) => {
   const { language } = useContext(SettingsContext);
+  const translations = useContext(TranslationContext);
   const { lines, setLines } = useContext(MetroContext);
-
-  const [translations, setTranslations] = useState({});
-
-  useEffect(() => {
-    const temp = {
-      "Select-All": {
-        en: "Show All",
-        ja: "全表示",
-        ko: "전체 선택",
-        "zh-Hans": "全选",
-        "zh-Hant": "全選",
-      },
-      "Deselect-All": {
-        en: "Hide All",
-        ja: "全非表示",
-        ko: "전체 선택 해제",
-        "zh-Hans": "取消全选",
-        "zh-Hant": "取消全選",
-      },
-    };
-
-    setTranslations(temp);
-  }, []);
 
   // Get chosen line ids in a simple list
   const chosen_line_ids = getChosenLineIds(lines);
@@ -304,14 +354,22 @@ const LineSelector = forwardRef(({}, ref) => {
 
   return (
     <div className="dropdown-content right-side" ref={ref}>
-      <button className="dropdown-line div-button black selected" onClick={() => setAllLines(true)}>
-        <FontAwesomeIcon icon={faSquareCheck} className="dropdown-icon" />
-        {translations["Select-All"]?.[language]}
-      </button>
-      <button className="dropdown-line div-button black unselected" onClick={() => setAllLines(false)}>
-        <FontAwesomeIcon icon={faSquareXmark} className="dropdown-icon" />
-        {translations["Deselect-All"]?.[language]}
-      </button>
+      <DropdownTrainLine
+        button_class="dropdown-line div-button black selected"
+        onClick={() => setAllLines(true)}
+        left_elem={
+          <FontAwesomeIcon icon={faSquareCheck} className="dropdown-icon" />
+        }
+        p_text={translations["Show-All"]?.[language]}
+      />
+      <DropdownTrainLine
+        button_class="dropdown-line div-button black unselected"
+        onClick={() => setAllLines(false)}
+        left_elem={
+          <FontAwesomeIcon icon={faSquareXmark} className="dropdown-icon" />
+        }
+        p_text={translations["Hide-All"]?.[language]}
+      />
       {lines.map((line) => {
         let selected = false;
         if (chosen_line_ids && chosen_line_ids.includes(line.id)) {
@@ -319,82 +377,207 @@ const LineSelector = forwardRef(({}, ref) => {
         }
 
         return (
-          <button
-            className={selected ? "dropdown-line div-button black selected" : "dropdown-line div-button black unselected"}
+          <DropdownTrainLine
+            button_class={
+              selected
+                ? "dropdown-line div-button black selected"
+                : "dropdown-line div-button black unselected"
+            }
             onClick={() => toggleLineShown(line.id)}
-          >
-            <img src={getLineImg(line.code[0])} className="metro-img" alt="" />
-            <p>{line.name[language]}</p>
-          </button>
+            left_elem={
+              <img
+                src={getLineImg(line.code[0])}
+                className="metro-img"
+                alt=""
+              />
+            }
+            p_text={line.name[language]}
+          />
         );
       })}
     </div>
   );
 });
 
-// Dropdown from navbar for settings
-const SettingsDropdown = forwardRef(({ setSettingsDropdown, setInfoPopup, popup_btn_ref }, ref) => {
-  const { language, setLanguage, languageList } = useContext(SettingsContext);
-
+// Dropdown line in LineSelector and SearchDropdown showing an image next to text
+function DropdownTrainLine({ button_class, onClick, left_elem, p_text }) {
   return (
-    <div className="dropdown-content left-side" ref={ref}>
-      {/* Language selection */}
-      <div className="dropdown-line settings-line">
-        <FontAwesomeIcon icon={faLanguage} className="settings-icon enlarge" />
-        <select
-          value={language}
-          onChange={(e) => {
-            setLanguage(e.target.value);
-          }}
-        >
-          {languageList.map((language) => {
-            return <option value={language.code}>{language.name}</option>;
-          })}
-        </select>
-      </div>
-      {/* Information */}
-      <button
-        ref={popup_btn_ref}
-        className="dropdown-line settings-line div-button"
-        onClick={() => {
-          setInfoPopup(true);
-          setSettingsDropdown(false);
-        }}
-      >
-        <FontAwesomeIcon icon={faCircleInfo} className="settings-icon" />
-        <h3 className="link">About</h3>
-      </button>
-    </div>
+    <button className={button_class} onClick={onClick}>
+      {left_elem}
+      <p>{p_text}</p>
+    </button>
   );
-});
+}
+
+// Dropdown from navbar for settings
+const SettingsDropdown = forwardRef(
+  ({ setSettingsDropdown, setInfoPopup, popup_btn_ref }, ref) => {
+    const { language, setLanguage, languageList } = useContext(SettingsContext);
+
+    return (
+      <div className="dropdown-content left-side" ref={ref}>
+        {/* Language selection */}
+        <div className="dropdown-line settings-line">
+          <FontAwesomeIcon
+            icon={faLanguage}
+            className="settings-icon enlarge"
+          />
+          <select
+            value={language}
+            onChange={(e) => {
+              setLanguage(e.target.value);
+            }}
+          >
+            {languageList.map((language) => {
+              return <option value={language.code}>{language.name}</option>;
+            })}
+          </select>
+        </div>
+        {/* Information */}
+        <div className="dropdown-line settings-line">
+          <button
+            ref={popup_btn_ref}
+            className="div-button flex"
+            onClick={() => {
+              setInfoPopup(true);
+              setSettingsDropdown(false);
+            }}
+          >
+            <FontAwesomeIcon icon={faCircleInfo} className="settings-icon" />
+            <h3 className="link">About</h3>
+          </button>
+        </div>
+      </div>
+    );
+  }
+);
 
 // Search dropdown
-const SearchComponent = forwardRef(({ stations, lines }, ref) => {
+const SearchComponent = forwardRef(({ searchDropdown }, ref) => {
+  const { language, languageList } = useContext(SettingsContext);
+  const translations = useContext(TranslationContext);
+  const { stations, lines } = useContext(MetroContext);
+
+  // Query and results
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState([]);
+  const [results, setResults] = useState({
+    station_matches: [],
+    line_matches: [],
+  });
 
-  function handleChange(e) {
-    setQuery(e.target.value);
-    getResults(e.target.value);
+  // Ref for input
+  const searchbox_ref = useRef(null);
+
+  // Focus search when dropdown opens
+  useEffect(() => {
+    if (searchDropdown) {
+      searchbox_ref.current.focus();
+    }
+  });
+
+  // Update results when query changes
+  useEffect(() => {
+    if (query != "") {
+      getResults(query);
+    } else {
+      setResults({
+        station_matches: [],
+        line_matches: [],
+      });
+    }
+  }, [query]);
+
+  // Searches for matching items in an object (i.e stations or lines)
+  function filterFromObject(q, obj) {
+    return obj.filter((item) => {
+      const name = item.name;
+
+      for (const { code } of languageList) {
+        if (name[code].toLowerCase().includes(q.toLowerCase())) {
+          return true;
+        }
+      }
+
+      return false;
+    });
   }
 
+  // Gets results from query
   function getResults(q) {
-    // const station_matches = stations.filter((station) => station.name[language].includes(q));
+    const station_matches = filterFromObject(q, stations);
+    const line_matches = filterFromObject(q, lines);
+
+    setResults({
+      station_matches: [...station_matches],
+      line_matches: [...line_matches],
+    });
   }
 
-  return (
+  return searchDropdown ? (
     <div className="dropdown-content right-side" ref={ref}>
-      <div className="dropdown-line">
-        {/* <div className="search-side-icon-background"> */}
-        <FontAwesomeIcon icon={faMagnifyingGlass} className="search-side-icon"></FontAwesomeIcon>
-        {/* </div> */}
-        <input type="text" className="search-input" placeholder="Search..." value={query} onChange={handleChange} />
+      {/* Search input */}
+      <div className="dropdown-line search-line">
+        <FontAwesomeIcon
+          icon={faMagnifyingGlass}
+          className="search-side-icon"
+        ></FontAwesomeIcon>
+        <input
+          type="text"
+          ref={searchbox_ref}
+          className="search-input"
+          placeholder="..."
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
       </div>
-      {results.map((result) => {
-        <div className="dropdown-line">result</div>;
-      })}
+      {/* Search results */}
+      <div className="search-results">
+        <div className="dropdown-line label-line">
+          <h3>{translations["Stations"][language]}:</h3>
+        </div>
+        {results.station_matches.length != 0 ? (
+          <div className="station-results">
+            {results.station_matches.map((result) => {
+              return (
+                <DropdownTrainLine
+                  button_class="dropdown-line div-button"
+                  left_elem={
+                    <FontAwesomeIcon
+                      icon={faTrain}
+                      className="dropdown-icon background"
+                    />
+                  }
+                  p_text={result.name[language]}
+                />
+              );
+            })}
+          </div>
+        ) : null}
+        <div className="dropdown-line label-line">
+          <h3>{translations["Lines"][language]}:</h3>
+        </div>
+        {results.line_matches.length != 0 ? (
+          <div className="lines-results">
+            {results.line_matches.map((result) => {
+              return (
+                <DropdownTrainLine
+                  button_class="dropdown-line div-button"
+                  left_elem={
+                    <img
+                      src={getLineImg(result.code[0])}
+                      className="metro-img"
+                      alt=""
+                    />
+                  }
+                  p_text={result.name[language]}
+                />
+              );
+            })}
+          </div>
+        ) : null}
+      </div>
     </div>
-  );
+  ) : null;
 });
 
 // On screen info popup
@@ -433,6 +616,8 @@ function MapComponent() {
 
   const map_ref = useRef(null);
 
+  // Open station popup externally (from search)
+
   // Show line when hovering over the line and hide when it gets far enough away from the popup
   // The following code is pretty fucked up and idk how it works.
   // I just made it from trying to fix one problem at a time.
@@ -465,8 +650,11 @@ function MapComponent() {
         if (!showMouseOverPopup) return;
 
         // Calculate distance between mouse position and popup position
-        const popup_point = map_ref.current.latLngToContainerPoint(mouseOverPopupPos);
-        const mouse_point = map_ref.current.mouseEventToContainerPoint(e.originalEvent);
+        const popup_point =
+          map_ref.current.latLngToContainerPoint(mouseOverPopupPos);
+        const mouse_point = map_ref.current.mouseEventToContainerPoint(
+          e.originalEvent
+        );
         const distance = popup_point.distanceTo(mouse_point);
 
         // Hide the popup if the distance is greater than a threshold
@@ -487,7 +675,9 @@ function MapComponent() {
   }
 
   // Train icon
-  const icon_markup = renderToStaticMarkup(<FontAwesomeIcon className="map-icon" icon={faTrain} />);
+  const icon_markup = renderToStaticMarkup(
+    <FontAwesomeIcon className="map-icon" icon={faTrain} />
+  );
   const custom_icon = divIcon({
     html: icon_markup,
   });
@@ -496,7 +686,14 @@ function MapComponent() {
     <>
       {/* Div to color background if map is disabled */}
       <div className="map-background">
-        <MapContainer className="map" ref={map_ref} center={[35.71, 139.75]} zoom={12} zoomControl={false} attributionControl={false}>
+        <MapContainer
+          className="map"
+          ref={map_ref}
+          center={[35.71, 139.75]}
+          zoom={12}
+          zoomControl={false}
+          attributionControl={false}
+        >
           <MapEvents />
           {enableMap ? (
             <TileLayer
@@ -518,7 +715,12 @@ function MapComponent() {
             const index = station.railways[0].index;
 
             return (
-              <Marker position={[station.geo.lat, station.geo.long]} width="30px" height="30px" icon={custom_icon}>
+              <Marker
+                position={[station.geo.lat, station.geo.long]}
+                width="30px"
+                height="30px"
+                icon={custom_icon}
+              >
                 <Popup>
                   <div className="popup-data">
                     <h3>{station.name[language]}</h3>
@@ -526,9 +728,15 @@ function MapComponent() {
                       {station.railways.map((railway) => {
                         return (
                           <div className="map-popup-line">
-                            <img src={getStationImg(railway.code, railway.index)}></img>
+                            <img
+                              src={getStationImg(railway.code, railway.index)}
+                            ></img>
                             <h3>
-                              {lines.find((line) => line.id === railway.id).name[language]} {railway.index}
+                              {
+                                lines.find((line) => line.id === railway.id)
+                                  .name[language]
+                              }{" "}
+                              {railway.index}
                             </h3>
                           </div>
                         );
@@ -560,7 +768,12 @@ function MapComponent() {
                     weight: 5,
                   }}
                   eventHandlers={{
-                    mouseover: (e) => handleMouseOver(e, line.name[language], getLineImg(line.code)),
+                    mouseover: (e) =>
+                      handleMouseOver(
+                        e,
+                        line.name[language],
+                        getLineImg(line.code)
+                      ),
                   }}
                 />
                 {/* The line itself */}
@@ -573,7 +786,10 @@ function MapComponent() {
                 />
 
                 {/* Hover over line to show line name */}
-                <Popup className="line-hover-popup" position={mouseOverPopupPos}>
+                <Popup
+                  className="line-hover-popup"
+                  position={mouseOverPopupPos}
+                >
                   <div className="map-popup-line">
                     <img src={mouseOverPopupImg}></img>
                     <h3>{mouseOverPopupName}</h3>

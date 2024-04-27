@@ -59,6 +59,7 @@
   margin: 0;
   font: inherit;
   cursor: pointer;
+  height: 100%;
 }
 
 /* Underline to make link */

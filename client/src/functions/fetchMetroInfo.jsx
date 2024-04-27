@@ -1,6 +1,6 @@
 import axios from "axios";
 
-async function fetchMetroInfo(url, setStations, setLines, setGeoHashmap, setFetchInfoError) {
+async function fetchMetroInfo(url, setStations, setLines, setGeoHashmap) {
   try {
     const response = await axios.get(`${url}/api/v1/metroInfo/getInfo`);
 
@@ -9,9 +9,9 @@ async function fetchMetroInfo(url, setStations, setLines, setGeoHashmap, setFetc
     setStations(response.data.stationInfo);
     setGeoHashmap(response.data.stationToCoords);
 
-    setFetchInfoError("");
+    // setFetchInfoError("");
   } catch (err) {
-    setFetchInfoError("Error fetching stations");
+    // setFetchInfoError("Error fetching stations");
   }
 }
 
