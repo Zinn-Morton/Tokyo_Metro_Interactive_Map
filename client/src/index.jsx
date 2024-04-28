@@ -151,6 +151,31 @@ function Index() {
     setStations(new_stations);
   }, [lines]);
 
+  // Toggles a line showing on the map given the line id
+  function toggleLineShown(id) {
+    let updated_lines = [...lines];
+
+    const shown = updated_lines.find((line) => line.id === id).shown;
+    updated_lines.find((line) => line.id === id).shown = !shown;
+
+    setLines(updated_lines);
+  }
+
+  // Hides all lines showing on map except those with ids in the input array
+  function showOnlyLines(id_array) {
+    let updated_lines = [...lines];
+
+    updated_lines.forEach((line) => {
+      if (id_array.includes(line.id)) {
+        line.shown = true;
+      } else {
+        line.shown = false;
+      }
+    });
+
+    setLines(updated_lines);
+  }
+
   // Map stuff since it needs to be in the context
   const map_ref = useRef(null);
   const popup_refs = useRef({});
@@ -191,6 +216,8 @@ function Index() {
               setStations: setStations,
               lines: lines,
               setLines: setLines,
+              toggleLineShown: toggleLineShown,
+              showOnlyLines: showOnlyLines,
               geoHashmap: geoHashmap,
               searchedStationId: searchedStationId,
               setSearchedStationId: setSearchedStationId,
@@ -343,7 +370,7 @@ function NavComponent({}) {
 const LineSelector = forwardRef(({}, ref) => {
   const { language } = useContext(SettingsContext);
   const translations = useContext(TranslationContext);
-  const { lines, setLines } = useContext(MetroContext);
+  const { lines, setLines, toggleLineShown } = useContext(MetroContext);
 
   // Get chosen line ids in a simple list
   const chosen_line_ids = getChosenLineIds(lines);
@@ -353,16 +380,6 @@ const LineSelector = forwardRef(({}, ref) => {
         chosen_line_ids.push(line.id);
       }
     });
-  }
-
-  // Toggles a line showing on the map given the line id
-  function toggleLineShown(id) {
-    let updated_lines = [...lines];
-
-    const shown = updated_lines.find((line) => line.id === id).shown;
-    updated_lines.find((line) => line.id === id).shown = !shown;
-
-    setLines(updated_lines);
   }
 
   // Show all / hide all stuff
@@ -482,7 +499,8 @@ const SearchComponent = forwardRef(
     const { language, languageList } = useContext(SettingsContext);
     const translations = useContext(TranslationContext);
     const { openStationPopup } = useContext(MapContext);
-    const { stations, lines, setSearchedStationId } = useContext(MetroContext);
+    const { stations, lines, showOnlyLines, setSearchedStationId } =
+      useContext(MetroContext);
 
     // Query and results
     const [query, setQuery] = useState("");
@@ -540,11 +558,18 @@ const SearchComponent = forwardRef(
     }
 
     // Opens station popup on map when clicking search result
-    function handleSearchClick(station_id) {
+    function handleStationSearchClick(station_id) {
       setSearchedStationId(station_id);
       setQuery("");
       setSearchDropdown(false);
       openStationPopup(station_id);
+    }
+
+    // Hides all lines except the search result
+    function handleLineSearchClick(line_id) {
+      showOnlyLines([line_id]);
+      setQuery("");
+      setSearchDropdown(false);
     }
 
     return (
@@ -577,7 +602,7 @@ const SearchComponent = forwardRef(
                   return (
                     <DropdownTrainLine
                       button_class="dropdown-line div-button"
-                      onClick={() => handleSearchClick(station.id)}
+                      onClick={() => handleStationSearchClick(station.id)}
                       left_elem={
                         <FontAwesomeIcon
                           icon={faTrain}
@@ -600,6 +625,7 @@ const SearchComponent = forwardRef(
                   return (
                     <DropdownTrainLine
                       button_class="dropdown-line div-button"
+                      onClick={() => handleLineSearchClick(line.id)}
                       left_elem={
                         <img
                           src={getLineImg(line.code[0])}

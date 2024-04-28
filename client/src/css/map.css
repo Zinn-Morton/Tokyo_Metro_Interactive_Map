@@ -23,9 +23,6 @@
 }
 
 /* Map icon */
-.map-icon-container {
-}
-
 .map-icon-background {
   height: var(--map-icon-total-size);
   width: var(--map-icon-total-size);
