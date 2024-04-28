@@ -1,6 +1,8 @@
 /* Map stuff */
-* {
-  --map-icon-size: 10px;
+:root {
+  --map-icon-size: 12px;
+  --map-icon-station-size: 14px;
+  --map-icon-total-size: calc(var(--map-icon-size) + 6px);
 }
 
 .map-background {
@@ -20,22 +22,47 @@
   width: fit-content;
 }
 
-/* Background for map icon */
-.leaflet-marker-icon.leaflet-div-icon {
-  height: calc(var(--map-icon-size) + 8px) !important;
-  width: calc(var(--map-icon-size) + 8px) !important;
-  background: var(--background-color) !important;
-  border: none !important;
-  border-radius: 50% !important;
+/* Map icon */
+.map-icon-container {
+}
+
+.map-icon-background {
+  height: var(--map-icon-total-size);
+  width: var(--map-icon-total-size);
+  background: var(--background-color);
+  border: none;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  outline: 1px solid var(--opposite-color) !important;
+  outline: 1px solid var(--opposite-color);
+}
+
+.leaflet-marker-icon.leaflet-div-icon {
+  background: none;
+  border: none;
 }
 
 .map-icon {
   height: var(--map-icon-size);
   color: var(--opposite-color);
+}
+
+.map-icon-stations-container {
+  width: calc(var(--map-icon-total-size) * 4);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  transform: translateX(-37.5%);
+}
+
+.map-icon-station-div {
+  flex: 0 0 var(--map-icon-total-size);
+}
+
+.map-icon-station {
+  width: var(--map-icon-station-size);
+  height: var(--map-icon-station-size);
 }
 
 /* Map popup stuff */

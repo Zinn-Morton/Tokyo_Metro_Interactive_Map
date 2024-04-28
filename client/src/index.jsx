@@ -19,6 +19,7 @@ import {
   Polyline,
   ZoomControl,
 } from "react-leaflet";
+import L from "leaflet";
 import { divIcon } from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -159,7 +160,7 @@ function Index() {
     // Find the popup ref
     const popup_ref = popup_refs.current[station_id];
 
-    popup_ref.openOn();
+    popup_ref.openOn(map_ref.current);
   }
 
   return (
@@ -283,14 +284,14 @@ function NavComponent({}) {
             className="nav-icon button"
             onClick={() => setSettingsDropdown(!settingsDropdown)}
           />
-          {settingsDropdown ? (
+          {settingsDropdown && (
             <SettingsDropdown
               ref={settings_dropdown_ref}
               setSettingsDropdown={setSettingsDropdown}
               setInfoPopup={setInfoPopup}
               popup_btn_ref={popup_btn_ref}
             />
-          ) : null}
+          )}
         </div>
         {/* Map toggle */}
         <FontAwesomeIcon
@@ -315,7 +316,7 @@ function NavComponent({}) {
             ref={lines_dropdown_btn_ref}
             onClick={() => setLinesDropdown(!linesDropdown)}
           />
-          {linesDropdown ? <LineSelector ref={lines_dropdown_ref} /> : null}
+          {linesDropdown && <LineSelector ref={lines_dropdown_ref} />}
         </div>
         {/* Search */}
         <div className="dropdown">
@@ -333,9 +334,7 @@ function NavComponent({}) {
         </div>
       </nav>
       {/* Info popup */}
-      {infoPopup ? (
-        <InfoPopup ref={popup_ref} setInfoPopup={setInfoPopup} />
-      ) : null}
+      {infoPopup && <InfoPopup ref={popup_ref} setInfoPopup={setInfoPopup} />}
     </>
   );
 }
@@ -543,78 +542,81 @@ const SearchComponent = forwardRef(
     // Opens station popup on map when clicking search result
     function handleSearchClick(station_id) {
       setSearchedStationId(station_id);
+      setQuery("");
       setSearchDropdown(false);
       openStationPopup(station_id);
     }
 
-    return searchDropdown ? (
-      <div className="dropdown-content right-side" ref={ref}>
-        {/* Search input */}
-        <div className="dropdown-line search-line">
-          <FontAwesomeIcon
-            icon={faMagnifyingGlass}
-            className="search-side-icon"
-          ></FontAwesomeIcon>
-          <input
-            type="text"
-            ref={searchbox_ref}
-            className="search-input"
-            placeholder="..."
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-        </div>
-        {/* Search results */}
-        <div className="search-results">
-          {/* Station results */}
-          <div className="dropdown-line label-line">
-            <h3>{translations["Stations"][language]}:</h3>
+    return (
+      searchDropdown && (
+        <div className="dropdown-content right-side" ref={ref}>
+          {/* Search input */}
+          <div className="dropdown-line search-line">
+            <FontAwesomeIcon
+              icon={faMagnifyingGlass}
+              className="search-side-icon"
+            ></FontAwesomeIcon>
+            <input
+              type="text"
+              ref={searchbox_ref}
+              className="search-input"
+              placeholder="..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
           </div>
-          {results.station_matches.length != 0 ? (
-            <div className="station-results">
-              {results.station_matches.map((station) => {
-                return (
-                  <DropdownTrainLine
-                    button_class="dropdown-line div-button"
-                    onClick={() => handleSearchClick(station.id)}
-                    left_elem={
-                      <FontAwesomeIcon
-                        icon={faTrain}
-                        className="dropdown-icon background"
-                      />
-                    }
-                    p_text={station.name[language]}
-                  />
-                );
-              })}
+          {/* Search results */}
+          <div className="search-results">
+            {/* Station results */}
+            <div className="dropdown-line label-line">
+              <h3>{translations["Stations"][language]}:</h3>
             </div>
-          ) : null}
-          {/* Line results */}
-          <div className="dropdown-line label-line">
-            <h3>{translations["Lines"][language]}:</h3>
+            {results.station_matches.length != 0 && (
+              <div className="station-results">
+                {results.station_matches.map((station) => {
+                  return (
+                    <DropdownTrainLine
+                      button_class="dropdown-line div-button"
+                      onClick={() => handleSearchClick(station.id)}
+                      left_elem={
+                        <FontAwesomeIcon
+                          icon={faTrain}
+                          className="dropdown-icon background"
+                        />
+                      }
+                      p_text={station.name[language]}
+                    />
+                  );
+                })}
+              </div>
+            )}
+            {/* Line results */}
+            <div className="dropdown-line label-line">
+              <h3>{translations["Lines"][language]}:</h3>
+            </div>
+            {results.line_matches.length != 0 && (
+              <div className="lines-results">
+                {results.line_matches.map((line) => {
+                  return (
+                    <DropdownTrainLine
+                      button_class="dropdown-line div-button"
+                      left_elem={
+                        <img
+                          src={getLineImg(line.code[0])}
+                          className="metro-img"
+                          alt=""
+                        />
+                      }
+                      p_text={line.name[language]}
+                    />
+                  );
+                })}
+              </div>
+            )}
           </div>
-          {results.line_matches.length != 0 ? (
-            <div className="lines-results">
-              {results.line_matches.map((line) => {
-                return (
-                  <DropdownTrainLine
-                    button_class="dropdown-line div-button"
-                    left_elem={
-                      <img
-                        src={getLineImg(line.code[0])}
-                        className="metro-img"
-                        alt=""
-                      />
-                    }
-                    p_text={line.name[language]}
-                  />
-                );
-              })}
-            </div>
-          ) : null}
         </div>
-      </div>
-    ) : null;
+      )
+    );
   }
 );
 
@@ -650,24 +652,23 @@ const InfoPopup = forwardRef(({ setInfoPopup }, ref) => {
 // Map
 function MapComponent() {
   const { language, enableMap, darkMode } = useContext(SettingsContext);
-  const { map_ref, popup_refs, openStationPopup } = useContext(MapContext);
-  const { stations, lines, geoHashmap, searchedStationId } =
-    useContext(MetroContext);
+  const { map_ref, popup_refs } = useContext(MapContext);
+  const {
+    stations,
+    lines,
+    geoHashmap,
+    searchedStationId,
+    setSearchedStationId,
+  } = useContext(MetroContext);
+
+  // Tracks zoom level for showing station indices
+  const [zoom, setZoom] = useState(12);
 
   // Show line when hovering over the line and hide when it gets far enough away from the popup
-  // The following code is pretty fucked up and idk how it works.
-  // I just made it from trying to fix one problem at a time.
-  // Note to self: Don't touch this unless you really have to
-  const [initialPopupHidden, setInitialPopupHidden] = useState(false);
   const [showMouseOverPopup, setShowMouseOverPopup] = useState(false);
   const [mouseOverPopupImg, setMouseOverPopupImg] = useState("");
   const [mouseOverPopupName, setMouseOverPopupName] = useState("");
   const [mouseOverPopupPos, setMouseOverPopupPos] = useState([35.71, 139.75]);
-
-  useEffect(() => {
-    setShowMouseOverPopup(false);
-    setInitialPopupHidden(false);
-  }, []);
 
   // Show popup
   function handleMouseOver(e, name, img) {
@@ -679,7 +680,7 @@ function MapComponent() {
     setShowMouseOverPopup(true);
   }
 
-  // Hide initial popup / Hide popup when mouse is far enough away
+  // Hide popup when mouse is far enough away
   function MapEvents() {
     useMapEvents({
       mousemove: (e) => {
@@ -695,30 +696,33 @@ function MapComponent() {
 
         // Hide the popup if the distance is greater than a threshold
         if (distance > 25) {
-          setShowMouseOverPopup(false);
           map_ref.current.closePopup();
         }
       },
-      popupopen: () => {
-        if (!initialPopupHidden) {
-          map_ref.current.closePopup();
-          setInitialPopupHidden(true);
-        }
+      popupclose: () => {
+        // Had to do this timeout because conditional rendering of the popup was weird when hiding
+        setTimeout(() => {
+          // Unshow line hover popup
+          setShowMouseOverPopup(false);
+
+          // Unshow searched station
+          setSearchedStationId(null);
+        }, 200);
+      },
+      zoom: () => {
+        setZoom(map_ref.current.getZoom());
       },
     });
 
     return null;
   }
 
-  // Train icon
-  const icon_markup = renderToStaticMarkup(
-    <FontAwesomeIcon className="map-icon" icon={faTrain} />
-  );
-  const custom_icon = divIcon({
-    html: icon_markup,
+  // Invisible icon
+  const invis_icon = new L.icon({
+    iconUrl:
+      "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
+    iconSize: [1, 1], // Set a very small icon size
   });
-
-  console.log(initialPopupHidden);
 
   return (
     <>
@@ -728,12 +732,12 @@ function MapComponent() {
           className="map"
           ref={map_ref}
           center={[35.71, 139.75]}
-          zoom={12}
+          zoom={zoom}
           zoomControl={false}
           attributionControl={false}
         >
           <MapEvents />
-          {enableMap ? (
+          {enableMap && (
             <TileLayer
               url={
                 darkMode
@@ -741,30 +745,30 @@ function MapComponent() {
                   : "https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png"
               }
             />
-          ) : null}
+          )}
           <ZoomControl position="bottomleft" />
+
           {/* Maps stations into markers on the map */}
           {stations.map((station) => {
-            if (!station.shown && station.id !== searchedStationId) {
-              return null;
-            }
+            // Map icon
+            const custom_icon = mapIcon(zoom, station);
+
+            const shown = station.shown || station.id === searchedStationId;
 
             const code = station.railways[0].code;
             const index = station.railways[0].index;
             return (
               <Marker
-                id={station.id}
+                opacity={shown ? 100 : 0}
                 position={[station.geo.lat, station.geo.long]}
                 width="30px"
                 height="30px"
-                icon={custom_icon}
+                icon={shown ? custom_icon : invis_icon}
+                riseOnHover={true}
               >
                 <Popup
-                  id={station.id}
                   ref={(el) => {
-                    if (popup_refs && !(el in popup_refs.current)) {
-                      popup_refs.current[station.id] = el;
-                    }
+                    popup_refs.current[station.id] = el;
                   }}
                 >
                   <div className="popup-data">
@@ -829,24 +833,66 @@ function MapComponent() {
                     weight: 3,
                   }}
                 />
-
-                {/* Hover over line to show line name */}
-                <Popup
-                  className="line-hover-popup"
-                  position={mouseOverPopupPos}
-                >
-                  <div className="map-popup-line">
-                    <img src={mouseOverPopupImg}></img>
-                    <h3>{mouseOverPopupName}</h3>
-                  </div>
-                </Popup>
               </>
             );
           })}
+
+          {/* Hover over line to show line name */}
+          {showMouseOverPopup && (
+            <Popup
+              className="line-hover-popup test"
+              position={mouseOverPopupPos}
+            >
+              <div className="map-popup-line">
+                <img src={mouseOverPopupImg}></img>
+                <h3>{mouseOverPopupName}</h3>
+              </div>
+            </Popup>
+          )}
         </MapContainer>
       </div>
     </>
   );
+}
+
+// Custom map icon which depends on zoom level
+function mapIcon(zoom, station) {
+  const ENLARGE_ZOOM_LVL = 14;
+
+  const ZOOM_STYLE = {
+    "--map-icon-size": `${8 * (zoom - ENLARGE_ZOOM_LVL) + 18}px`,
+    "--map-icon-station-size": "calc(var(--map-icon-size) + 2px)",
+    "--map-icon-total-size": "calc(var(--map-icon-size) * 1.4)",
+  };
+
+  const icon_markup = renderToStaticMarkup(
+    <div className="map-icon-container">
+      <div style={zoom >= ENLARGE_ZOOM_LVL ? ZOOM_STYLE : {}}>
+        <div className="map-icon-background">
+          <FontAwesomeIcon className="map-icon" icon={faTrain} />
+        </div>
+        {/* If sufficiently zoomed in show stop indices */}
+        {zoom >= ENLARGE_ZOOM_LVL && (
+          <div className="map-icon-stations-container">
+            {station.railways.map((railway) => {
+              return (
+                <div className="map-icon-background map-icon-station-div">
+                  <img
+                    className="map-icon-station"
+                    src={getStationImg(railway.code, railway.index)}
+                  ></img>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  return divIcon({
+    html: icon_markup,
+  });
 }
 
 export default Index;

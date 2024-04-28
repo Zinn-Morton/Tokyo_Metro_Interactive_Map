@@ -24,7 +24,7 @@ function getTranslations() {
     Lines: {
       en: "Lines",
       ja: "線",
-      ko: "선",
+      ko: "노선",
       "zh-Hans": "线",
       "zh-Hant": "線",
     },
