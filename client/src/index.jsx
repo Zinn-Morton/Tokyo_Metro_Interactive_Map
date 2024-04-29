@@ -8,6 +8,7 @@ import {
   forwardRef,
 } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { isMobile } from "react-device-detect";
 
 // Map stuff
 import {
@@ -60,8 +61,7 @@ import { getLanguageList } from "./functions/getLanguageList.jsx";
 import { getTranslations } from "./functions/getTranslations.jsx";
 
 // URL of backend - TODO: change on launch
-const url = "http://localhost:5000";
-// const url = "https://task-manager-self.fly.dev";
+const url = import.meta.env.VITE_BACKEND_URL;
 
 // Contexts
 const MetroContext = createContext();
@@ -580,7 +580,7 @@ const SearchComponent = forwardRef(
             <FontAwesomeIcon
               icon={faMagnifyingGlass}
               className="search-side-icon"
-            ></FontAwesomeIcon>
+            />
             <input
               type="text"
               ref={searchbox_ref}
@@ -671,6 +671,15 @@ const InfoPopup = forwardRef(({ setInfoPopup }, ref) => {
       <div className="break" />
       <h4>Packages used: Leaflet, React Leaflet, Axios</h4>
       <div className="break" />
+      <h4>
+        <a
+          href="https://github.com/ZinnMortonOSU/Tokyo_Metro_Interactive_Map"
+          target="_blank"
+        >
+          Site Github Repo
+        </a>
+      </h4>
+      <div className="break" />
     </div>
   );
 });
@@ -688,7 +697,7 @@ function MapComponent() {
   } = useContext(MetroContext);
 
   // Tracks zoom level for showing station indices
-  const [zoom, setZoom] = useState(12);
+  const [zoom, setZoom] = useState(isMobile ? 11.5 : 12);
 
   // Show line when hovering over the line and hide when it gets far enough away from the popup
   const [showMouseOverPopup, setShowMouseOverPopup] = useState(false);
@@ -736,7 +745,11 @@ function MapComponent() {
         }, 200);
       },
       zoom: () => {
+        console.log(map_ref.current.getZoom());
         setZoom(map_ref.current.getZoom());
+      },
+      move: () => {
+        console.log(map_ref.current.getCenter());
       },
     });
 
@@ -757,18 +770,20 @@ function MapComponent() {
         <MapContainer
           className="map"
           ref={map_ref}
-          center={[35.71, 139.75]}
+          center={isMobile ? [35.685, 139.75] : [35.71, 139.75]}
           zoom={zoom}
           zoomControl={false}
           attributionControl={false}
+          zoomDelta={0.5}
+          zoomSnap={0.5}
         >
           <MapEvents />
           {enableMap && (
             <TileLayer
               url={
                 darkMode
-                  ? "https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png"
-                  : "https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png"
+                  ? `https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png?api_key=61fbf018-da81-4430-8b6c-3111114ac03f`
+                  : `https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png?api_key=61fbf018-da81-4430-8b6c-3111114ac03f`
               }
             />
           )}
@@ -885,27 +900,37 @@ function MapComponent() {
 function mapIcon(zoom, station) {
   const ENLARGE_ZOOM_LVL = 14;
 
-  const ZOOM_STYLE = {
-    "--map-icon-size": `${8 * (zoom - ENLARGE_ZOOM_LVL) + 18}px`,
-    "--map-icon-station-size": "calc(var(--map-icon-size) + 2px)",
-    "--map-icon-total-size": "calc(var(--map-icon-size) * 1.4)",
+  const ZOOM_VARS = {
+    "--map-icon-size": `${8 * (zoom - ENLARGE_ZOOM_LVL) + 18}px !important`,
+    "--map-icon-station-size": "calc(var(--map-icon-size) + 2px) !important",
+    "--map-icon-total-size": "calc(var(--map-icon-size) * 1.4) !important",
   };
+
+  const use_style = zoom >= ENLARGE_ZOOM_LVL ? ZOOM_VARS : {};
 
   const icon_markup = renderToStaticMarkup(
     <div className="map-icon-container">
-      <div style={zoom >= ENLARGE_ZOOM_LVL ? ZOOM_STYLE : {}}>
-        <div className="map-icon-background">
-          <FontAwesomeIcon className="map-icon" icon={faTrain} />
+      <div>
+        <div className="map-icon-background" style={use_style}>
+          <FontAwesomeIcon
+            className="map-icon"
+            icon={faTrain}
+            style={use_style}
+          />
         </div>
         {/* If sufficiently zoomed in show stop indices */}
         {zoom >= ENLARGE_ZOOM_LVL && (
-          <div className="map-icon-stations-container">
+          <div className="map-icon-stations-container" style={use_style}>
             {station.railways.map((railway) => {
               return (
-                <div className="map-icon-background map-icon-station-div">
+                <div
+                  className="map-icon-background map-icon-station-div"
+                  style={use_style}
+                >
                   <img
                     className="map-icon-station"
                     src={getStationImg(railway.code, railway.index)}
+                    style={use_style}
                   ></img>
                 </div>
               );

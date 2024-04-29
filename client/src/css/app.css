@@ -2,7 +2,7 @@
   --white: #e5e5e5;
   --gray: #8f8389;
   --black: #351330;
-  --purple: #8e3bc1;
+  --purple: #ad7ced;
   --blue: #6ccff6;
   --light-blue: #6af2f2;
   --red: #da7561;
@@ -66,6 +66,7 @@
 .link {
   text-decoration: underline;
   text-decoration-thickness: 0.1rem;
+  color: var(--opposite-color);
 }
 
 /* Click cursor */

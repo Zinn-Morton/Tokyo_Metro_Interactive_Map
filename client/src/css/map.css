@@ -1,12 +1,13 @@
 /* Map stuff */
 :root {
-  --map-icon-size: 12px;
-  --map-icon-station-size: 14px;
+  --map-icon-size: 0.75rem;
+  --map-icon-station-size: 0.875rem;
   --map-icon-total-size: calc(var(--map-icon-size) + 6px);
 }
 
 .map-background {
   width: 100%;
+  height: inherit;
   background-color: var(--background-color);
   flex: 1;
 }
@@ -98,4 +99,14 @@
 
 .map-popup-line > h3 {
   display: inline;
+}
+
+/* Mobile */
+@media screen and (max-aspect-ratio: 3/4) {
+  /* Make map icons smaller */
+  * {
+    --map-icon-size: 0.6rem;
+    --map-icon-station-size: 0.8rem;
+    --map-icon-total-size: calc(var(--map-icon-size) + 6px);
+  }
 }

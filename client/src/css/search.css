@@ -24,7 +24,7 @@
 .search-side-icon {
   color: var(--opposite-color);
   background-color: var(--background-color);
-  height: calc(var(--search-height) * 0.65);
+  height: 65%;
   border: calc(var(--search-height) * 0.175) solid var(--background-color);
   border-radius: 5px 0 0 5px;
 }
@@ -56,5 +56,6 @@
   /* Make search bar bigger */
   .search-input {
     width: 100%;
+    font-size: 16px;
   }
 }

@@ -1,14 +1,14 @@
 // Packages
 const express = require("express");
 const cors = require("cors");
+const path = require("path");
 require("dotenv").config();
 
 const app = express();
 
 const port = 5000;
 
-const url = "http://localhost:5173";
-// const url = "https://task-manager-self.fly.dev";
+const url = process.env.FRONTEND_URL;
 
 app.use(cors({ origin: url }));
 
@@ -20,9 +20,9 @@ const errorHandler = require("./middleware/error_handler.js");
 app.use(express.json());
 
 // Frontend
-// app.use(express.static("./public"));
+app.use(express.static(path.join(__dirname, "../client/dist")));
 
-// Tasks router
+// Metro info router
 app.use("/api/v1/metroInfo", metroInfo);
 
 app.use(errorHandler);
