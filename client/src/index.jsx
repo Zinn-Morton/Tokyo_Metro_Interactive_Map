@@ -8,7 +8,7 @@ import {
   forwardRef,
 } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { isMobile } from "react-device-detect";
+import { isMobile, isBrowser } from "react-device-detect";
 
 // Map stuff
 import {
@@ -713,7 +713,7 @@ function MapComponent() {
 
   // Show popup
   function handleMouseOver(e, name, img) {
-    if (showMouseOverPopup) return;
+    if (isBrowser && showMouseOverPopup) return;
 
     setMouseOverPopupName(name);
     setMouseOverPopupImg(img);
@@ -721,11 +721,21 @@ function MapComponent() {
     setShowMouseOverPopup(true);
   }
 
+  // Function to hide popup
+  function hideMouseOverPopup() {
+    map_ref.current.closePopup();
+
+    // Had to do this timeout because conditional rendering of the popup was weird when hiding
+    setTimeout(() => {
+      setShowMouseOverPopup(false);
+    }, 200);
+  }
+
   // Hide popup when mouse is far enough away
   function MapEvents() {
     useMapEvents({
       mousemove: (e) => {
-        if (!showMouseOverPopup || isMobile) return;
+        if (!showMouseOverPopup) return;
 
         // Calculate distance between mouse position and popup position
         const popup_point =
@@ -737,15 +747,12 @@ function MapComponent() {
 
         // Hide the popup if the distance is greater than a threshold
         if (distance > 25) {
-          map_ref.current.closePopup();
+          hideMouseOverPopup();
         }
       },
       popupclose: () => {
         // Had to do this timeout because conditional rendering of the popup was weird when hiding
         setTimeout(() => {
-          // Unshow line hover popup
-          setShowMouseOverPopup(false);
-
           // Unshow searched station
           setSearchedStationId(null);
         }, 200);
@@ -816,6 +823,11 @@ function MapComponent() {
                 height="30px"
                 icon={shown ? custom_icon : invis_icon}
                 riseOnHover={true}
+                eventHandlers={{
+                  click: () => {
+                    setShowMouseOverPopup(false);
+                  },
+                }}
               >
                 <Popup
                   ref={(el) => {
@@ -866,7 +878,7 @@ function MapComponent() {
                     positions={positions}
                     pathOptions={{
                       color: "#000000",
-                      weight: 20,
+                      weight: 25,
                       opacity: 0,
                     }}
                     eventHandlers={{
