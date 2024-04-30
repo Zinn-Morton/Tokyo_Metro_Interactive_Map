@@ -593,7 +593,7 @@ const SearchComponent = forwardRef(
           {/* Search results */}
           <div className="search-results">
             {/* Station results */}
-            <div className="dropdown-line label-line">
+            <div className="dropdown-line label-line search-line">
               <h3>{translations["Stations"][language]}:</h3>
             </div>
             {results.station_matches.length != 0 && (
@@ -601,7 +601,7 @@ const SearchComponent = forwardRef(
                 {results.station_matches.map((station) => {
                   return (
                     <DropdownTrainLine
-                      button_class="dropdown-line div-button"
+                      button_class="dropdown-line div-button search-line"
                       onClick={() => handleStationSearchClick(station.id)}
                       left_elem={
                         <FontAwesomeIcon
@@ -616,7 +616,7 @@ const SearchComponent = forwardRef(
               </div>
             )}
             {/* Line results */}
-            <div className="dropdown-line label-line">
+            <div className="dropdown-line label-line search-line">
               <h3>{translations["Lines"][language]}:</h3>
             </div>
             {results.line_matches.length != 0 && (
@@ -624,7 +624,7 @@ const SearchComponent = forwardRef(
                 {results.line_matches.map((line) => {
                   return (
                     <DropdownTrainLine
-                      button_class="dropdown-line div-button"
+                      button_class="dropdown-line div-button search-line"
                       onClick={() => handleLineSearchClick(line.id)}
                       left_elem={
                         <img
@@ -699,6 +699,12 @@ function MapComponent() {
   // Tracks zoom level for showing station indices
   const [zoom, setZoom] = useState(isMobile ? 11.5 : 12);
 
+  // Rerender map tiles when darkmode changes
+  const [tileKey, setTileKey] = useState(0);
+  useEffect(() => {
+    setTileKey((prevKey) => (prevKey + 1) % 10);
+  }, [darkMode]);
+
   // Show line when hovering over the line and hide when it gets far enough away from the popup
   const [showMouseOverPopup, setShowMouseOverPopup] = useState(false);
   const [mouseOverPopupImg, setMouseOverPopupImg] = useState("");
@@ -719,7 +725,7 @@ function MapComponent() {
   function MapEvents() {
     useMapEvents({
       mousemove: (e) => {
-        if (!showMouseOverPopup) return;
+        if (!showMouseOverPopup || isMobile) return;
 
         // Calculate distance between mouse position and popup position
         const popup_point =
@@ -778,8 +784,11 @@ function MapComponent() {
           zoomSnap={0.5}
         >
           <MapEvents />
+
+          {/* Map tiles */}
           {enableMap && (
             <TileLayer
+              key={tileKey}
               url={
                 darkMode
                   ? `https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png?api_key=61fbf018-da81-4430-8b6c-3111114ac03f`
@@ -787,6 +796,7 @@ function MapComponent() {
               }
             />
           )}
+
           <ZoomControl position="bottomleft" />
 
           {/* Maps stations into markers on the map */}
@@ -850,6 +860,25 @@ function MapComponent() {
 
             return (
               <>
+                {/* Invisible to make mobile click easier */}
+                {isMobile && (
+                  <Polyline
+                    positions={positions}
+                    pathOptions={{
+                      color: "#000000",
+                      weight: 20,
+                      opacity: 0,
+                    }}
+                    eventHandlers={{
+                      click: (e) =>
+                        handleMouseOver(
+                          e,
+                          line.name[language],
+                          getLineImg(line.code)
+                        ),
+                    }}
+                  />
+                )}
                 {/* Outline */}
                 <Polyline
                   positions={positions}
@@ -857,14 +886,18 @@ function MapComponent() {
                     color: "#000000",
                     weight: 5,
                   }}
-                  eventHandlers={{
-                    mouseover: (e) =>
-                      handleMouseOver(
-                        e,
-                        line.name[language],
-                        getLineImg(line.code)
-                      ),
-                  }}
+                  eventHandlers={
+                    isMobile
+                      ? {}
+                      : {
+                          mouseover: (e) =>
+                            handleMouseOver(
+                              e,
+                              line.name[language],
+                              getLineImg(line.code)
+                            ),
+                        }
+                  }
                 />
                 {/* The line itself */}
                 <Polyline

@@ -51,6 +51,11 @@
   color: var(--white);
 }
 
+.search-line p,
+.search-line h3 {
+  color: var(--white);
+}
+
 /* Mobile */
 @media screen and (max-aspect-ratio: 3/4) {
   /* Make search bar bigger */

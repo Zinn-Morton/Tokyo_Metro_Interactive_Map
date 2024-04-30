@@ -3,7 +3,7 @@
 .settings-icon {
   height: 80%;
   width: 3rem;
-  color: var(--opposite-color);
+  color: var(--white);
 }
 
 .settings-icon.enlarge {
@@ -34,4 +34,6 @@ select {
   background-color: var(--background-color);
   color: var(--opposite-color);
   border-radius: 5px;
+  outline: none;
+  border: none;
 }

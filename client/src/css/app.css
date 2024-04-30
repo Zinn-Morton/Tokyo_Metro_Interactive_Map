@@ -1,6 +1,6 @@
 :root {
   --white: #e5e5e5;
-  --gray: #8f8389;
+  --gray: #847b7e;
   --black: #351330;
   --purple: #ad7ced;
   --blue: #6ccff6;
@@ -66,7 +66,7 @@
 .link {
   text-decoration: underline;
   text-decoration-thickness: 0.1rem;
-  color: var(--opposite-color);
+  color: var(--white);
 }
 
 /* Click cursor */
