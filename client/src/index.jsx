@@ -669,7 +669,7 @@ const InfoPopup = forwardRef(({ setInfoPopup }, ref) => {
       <div className="break" />
       <h4>Made using React, Vite, Express</h4>
       <div className="break" />
-      <h4>Packages used: Leaflet, React Leaflet, Axios</h4>
+      <h4>Packages used: Leaflet, React Leaflet, Axios, FontAwesome</h4>
       <div className="break" />
       <h4>
         <a
