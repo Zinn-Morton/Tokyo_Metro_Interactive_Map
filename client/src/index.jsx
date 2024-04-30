@@ -36,6 +36,7 @@ import {
   faLanguage,
   faCircleInfo,
   faCircleXmark,
+  faSpaghettiMonsterFlying,
 } from "@fortawesome/free-solid-svg-icons";
 import { faMap } from "@fortawesome/free-regular-svg-icons";
 
@@ -80,6 +81,7 @@ function Index() {
   const [lines, setLines] = useState([]);
   const [geoHashmap, setGeoHashmap] = useState({});
   const [searchedStationId, setSearchedStationId] = useState(null);
+  const [fetchInfoError, setFetchInfoError] = useState("");
 
   // User settings
   const [language, setLanguage] = useState(default_settings.language);
@@ -124,9 +126,28 @@ function Index() {
   // Preloads images
   useImagePreloader(stations, lines);
 
-  // Initial render data fetch
+  // Metro info fetch
+  function fetchMetroInfoWrapper() {
+    fetchMetroInfo({
+      url: url,
+      setStations: setStations,
+      setLines: setLines,
+      setGeoHashmap: setGeoHashmap,
+      setFetchInfoError: setFetchInfoError,
+      timerId: timerId,
+    });
+  }
+
+  // Initial fetch
+  const [timerId, setTimerId] = useState(null);
   useEffect(() => {
-    fetchMetroInfo(url, setStations, setLines, setGeoHashmap);
+    fetchMetroInfoWrapper();
+
+    if (fetchInfoError) {
+      const interval = setInterval(fetchMetroInfoWrapper, 5000);
+      setTimerId(interval);
+    }
+
     setLanguageList(getLanguageList());
   }, []);
 
@@ -221,6 +242,7 @@ function Index() {
               geoHashmap: geoHashmap,
               searchedStationId: searchedStationId,
               setSearchedStationId: setSearchedStationId,
+              fetchInfoError: fetchInfoError,
             }}
           >
             <Site />
@@ -694,6 +716,7 @@ function MapComponent() {
     geoHashmap,
     searchedStationId,
     setSearchedStationId,
+    fetchInfoError,
   } = useContext(MetroContext);
 
   // Tracks zoom level for showing station indices
@@ -758,11 +781,7 @@ function MapComponent() {
         }, 200);
       },
       zoom: () => {
-        console.log(map_ref.current.getZoom());
         setZoom(map_ref.current.getZoom());
-      },
-      move: () => {
-        console.log(map_ref.current.getCenter());
       },
     });
 
@@ -791,6 +810,9 @@ function MapComponent() {
           zoomSnap={0.5}
         >
           <MapEvents />
+
+          {/* Fetch info error message */}
+          {fetchInfoError && <h1 className="error-msg">{fetchInfoError}</h1>}
 
           {/* Map tiles */}
           {enableMap && (

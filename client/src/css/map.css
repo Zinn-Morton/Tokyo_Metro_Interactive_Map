@@ -101,6 +101,15 @@
   display: inline;
 }
 
+/* Error msg */
+.error-msg {
+  position: fixed;
+  margin-left: 12px;
+  z-index: 999;
+  text-shadow: -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000,
+    2px 2px 0 #000;
+}
+
 /* Mobile */
 @media screen and (max-aspect-ratio: 3/4) {
   /* Make map icons smaller */

@@ -99,7 +99,9 @@ const getInfo = asyncWrapper(async (req, res) => {
         return {
           id: railway_id,
           code: line_id_to_code.get(railway_id),
-          index: line_info.find((line) => line.id === railway_id).stationOrder.find((item) => item.station === id).index,
+          index: line_info
+            .find((line) => line.id === railway_id)
+            .stationOrder.find((item) => item.station === id).index,
         };
       }),
       geo: group[0].geo,
@@ -110,7 +112,10 @@ const getInfo = asyncWrapper(async (req, res) => {
   // Create mapping of station id to coords
   station_to_coords = {};
   unique_stations.forEach((station) => {
-    station_to_coords = { ...station_to_coords, [station.id]: [station.geo.lat, station.geo.long] };
+    station_to_coords = {
+      ...station_to_coords,
+      [station.id]: [station.geo.lat, station.geo.long],
+    };
   });
 
   const ret = {
