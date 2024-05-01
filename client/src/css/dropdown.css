@@ -1,4 +1,4 @@
-* {
+:root {
   --dropdown-line-height: calc(var(--metro-img-size) + 0.4rem);
 }
 

@@ -1,4 +1,4 @@
-* {
+:root {
   --search-height: calc(var(--dropdown-line-height) * 0.8);
 }
 

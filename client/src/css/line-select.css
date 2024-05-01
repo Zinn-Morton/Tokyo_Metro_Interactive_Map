@@ -1,4 +1,4 @@
-* {
+:root {
   --metro-img-size: 1.5rem;
   --metro-img-size-mobile: 2rem;
 }
@@ -35,7 +35,7 @@
 /* Mobile */
 @media screen and (max-aspect-ratio: 3/4) {
   /* Make nav bigger */
-  * {
+  :root {
     --metro-img-size: var(--metro-img-size-mobile);
   }
 }

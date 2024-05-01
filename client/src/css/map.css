@@ -113,7 +113,7 @@
 /* Mobile */
 @media screen and (max-aspect-ratio: 3/4) {
   /* Make map icons smaller */
-  * {
+  :root {
     --map-icon-size: 0.6rem;
     --map-icon-station-size: 0.8rem;
     --map-icon-total-size: calc(var(--map-icon-size) + 6px);

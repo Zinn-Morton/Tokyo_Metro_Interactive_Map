@@ -976,28 +976,20 @@ function mapIcon(zoom, station) {
   const use_style = zoom >= ENLARGE_ZOOM_LVL ? ZOOM_VARS : {};
 
   const icon_markup = renderToStaticMarkup(
-    <div className="map-icon-container">
+    <div className="map-icon-container" style={use_style}>
       <div>
-        <div className="map-icon-background" style={use_style}>
-          <FontAwesomeIcon
-            className="map-icon"
-            icon={faTrain}
-            style={use_style}
-          />
+        <div className="map-icon-background">
+          <FontAwesomeIcon className="map-icon" icon={faTrain} />
         </div>
         {/* If sufficiently zoomed in show stop indices */}
         {zoom >= ENLARGE_ZOOM_LVL && (
-          <div className="map-icon-stations-container" style={use_style}>
+          <div className="map-icon-stations-container">
             {station.railways.map((railway) => {
               return (
-                <div
-                  className="map-icon-background map-icon-station-div"
-                  style={use_style}
-                >
+                <div className="map-icon-background map-icon-station-div">
                   <img
                     className="map-icon-station"
                     src={getStationImg(railway.code, railway.index)}
-                    style={use_style}
                   ></img>
                 </div>
               );

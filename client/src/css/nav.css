@@ -1,5 +1,5 @@
 /* Nav stuff */
-* {
+:root {
   --nav-height: 2rem;
   --nav-height-mobile: 3rem;
   --nav-border-width: 2px;
@@ -39,7 +39,7 @@
 /* Mobile */
 @media screen and (max-aspect-ratio: 3/4) {
   /* Make nav bigger */
-  * {
+  :root {
     --nav-height: var(--nav-height-mobile);
   }
 }
