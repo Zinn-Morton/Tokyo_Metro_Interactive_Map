@@ -8,7 +8,7 @@
 .map-background {
   width: 100%;
   height: inherit;
-  background-color: var(--background-color);
+  background-color: var(--black);
   flex: 1;
 }
 
@@ -27,13 +27,13 @@
 .map-icon-background {
   height: var(--map-icon-total-size);
   width: var(--map-icon-total-size);
-  background: var(--background-color);
+  background: var(--black);
   border: none;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  outline: 1px solid var(--opposite-color);
+  outline: 1px solid var(--white);
 }
 
 .leaflet-marker-icon.leaflet-div-icon {
@@ -43,7 +43,7 @@
 
 .map-icon {
   height: var(--map-icon-size);
-  color: var(--opposite-color);
+  color: var(--white);
 }
 
 .map-icon-stations-container {

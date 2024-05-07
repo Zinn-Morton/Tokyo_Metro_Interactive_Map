@@ -965,10 +965,10 @@ function MapComponent() {
 
 // Custom map icon which depends on zoom level
 function mapIcon(zoom, station) {
-  const ENLARGE_ZOOM_LVL = 14;
+  const ENLARGE_ZOOM_LVL = 14.5;
 
   const ZOOM_VARS = {
-    "--map-icon-size": `${8 * (zoom - ENLARGE_ZOOM_LVL) + 18}px !important`,
+    "--map-icon-size": `${8 * (zoom - ENLARGE_ZOOM_LVL) + 24}px !important`,
     "--map-icon-station-size": "calc(var(--map-icon-size) + 2px) !important",
     "--map-icon-total-size": "calc(var(--map-icon-size) * 1.4) !important",
   };

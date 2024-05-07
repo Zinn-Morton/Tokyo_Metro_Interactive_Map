@@ -1,9 +1,11 @@
 function getStationImg(code, index) {
+  let folder_code = code == "Mb" ? "M" : code;
+
   let path = "";
   if (index < 10) {
-    path = `/metro_img/station_number/${code[0]}/${code.toLowerCase()}-0${index}.png`;
+    path = `/metro_img/station_number/${folder_code}/${code.toLowerCase()}-0${index}.png`;
   } else {
-    path = `/metro_img/station_number/${code[0]}/${code.toLowerCase()}-${index}.png`;
+    path = `/metro_img/station_number/${folder_code}/${code.toLowerCase()}-${index}.png`;
   }
 
   return path;
