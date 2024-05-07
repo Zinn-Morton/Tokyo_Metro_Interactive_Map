@@ -2,7 +2,11 @@
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
+const fs = require("fs");
 require("dotenv").config();
+
+// Metro info fetch
+const { cacheMetroInfo } = require("./functions/cacheMetroInfo.js");
 
 const app = express();
 
@@ -34,6 +38,10 @@ app.all("*", (req, res) => {
 
 async function start() {
   try {
+    // Fetch metro info once then cache it if cache empty
+    if (!fs.existsSync(process.env.METRO_INFO_CACHE_FILE_PATH))
+      cacheMetroInfo();
+
     app.listen(port, "0.0.0.0", () => {
       console.log(`Server listening on port ${port}`);
     });
