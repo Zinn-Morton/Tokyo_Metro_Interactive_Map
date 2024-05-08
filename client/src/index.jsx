@@ -689,6 +689,13 @@ const InfoPopup = forwardRef(({ setInfoPopup }, ref) => {
         </a>
       </h4>
       <div className="break" />
+      <h4>
+        Translations from{" "}
+        <a href="https://rapidapi.com/undergroundapi-undergroundapi-default/api/google-translate113">
+          undergroundAPI's Google Translate API on rapidapi.com
+        </a>
+      </h4>
+      <div className="break" />
       <h4>Made using React, Vite, Express</h4>
       <div className="break" />
       <h4>Packages used: Leaflet, React Leaflet, Axios, FontAwesome</h4>
