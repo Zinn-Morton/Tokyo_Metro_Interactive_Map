@@ -6,6 +6,7 @@
 /* Line selector */
 .line-results {
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 /* Lines */

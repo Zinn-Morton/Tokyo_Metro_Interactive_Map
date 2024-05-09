@@ -148,17 +148,13 @@ function Index() {
 
   // Initial fetch
   useEffect(() => {
-    async function fetchData() {
-      const success = await fetchMetroInfoWrapper();
+    const success = fetchMetroInfoWrapper();
 
-      if (!success) {
-        const timerId = setInterval(() => fetchMetroInfoWrapper(timerId), 5000);
-      }
-
-      setLanguageList(getLanguageList());
+    if (!success) {
+      const timerId = setInterval(() => fetchMetroInfoWrapper(timerId), 5000);
     }
 
-    fetchData();
+    setLanguageList(getLanguageList());
   }, []);
 
   // Function to set lines while updating station visibility
