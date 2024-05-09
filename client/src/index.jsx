@@ -159,11 +159,17 @@ function Index() {
     setLanguageList(getLanguageList());
   }, []);
 
+  // Function to set lines while updating station visibility
+  function setLinesUpdateStation(updated_lines) {
+    updateStationVisibility(updated_lines);
+    setLines(updated_lines);
+  }
+
   // Sets shown/unshown stations depending on which lines are shown
-  useEffect(() => {
+  function updateStationVisibility(updated_lines) {
     let new_stations = [...stations];
 
-    const chosen_line_ids = getChosenLineIds(lines);
+    const chosen_line_ids = getChosenLineIds(updated_lines);
 
     new_stations.forEach((station) => {
       let shown = false;
@@ -178,9 +184,9 @@ function Index() {
     });
 
     setStations(new_stations);
-  }, [lines]);
+  }
 
-  // Toggles a line showing on the map given the line id
+  // Gets next state of lines when a line id is toggled visible
   function toggleLineShownNextState(id) {
     let updated_lines = [...lines];
 
@@ -188,10 +194,6 @@ function Index() {
     updated_lines.find((line) => line.id === id).shown = !shown;
 
     return updated_lines;
-  }
-
-  function toggleLineShown(id) {
-    setLines(toggleLineShown(id));
   }
 
   // Hides all lines showing on map except those with ids in the input array
@@ -206,7 +208,7 @@ function Index() {
       }
     });
 
-    setLines(updated_lines);
+    setLinesUpdateStation(updated_lines);
   }
 
   // Map stuff since it needs to be in the context
@@ -248,9 +250,8 @@ function Index() {
               stations: stations,
               setStations: setStations,
               lines: lines,
-              setLines: setLines,
+              setLinesUpdateStation: setLinesUpdateStation,
               toggleLineShownNextState: toggleLineShownNextState,
-              toggleLineShown: toggleLineShown,
               showOnlyLines: showOnlyLines,
               geoHashmap: geoHashmap,
               operators: operators,
@@ -406,7 +407,7 @@ function NavComponent({}) {
 const LineSelector = forwardRef(({}, ref) => {
   const { language } = useContext(SettingsContext);
   const translations = useContext(TranslationContext);
-  const { lines, setLines, toggleLineShownNextState, operators } =
+  const { lines, setLinesUpdateStation, toggleLineShownNextState, operators } =
     useContext(MetroContext);
 
   // State of each operator toggle (selected/unselected)
@@ -453,14 +454,14 @@ const LineSelector = forwardRef(({}, ref) => {
     setOperatorToggles(updated_operator_toggles);
   }
 
-  // Each time a station is shown/unshown update the operator toggles if neccesary
+  // Each time a station is shown/unshown update the operator toggles (if neccesary)
   useEffect(() => updateOperatorToggles(lines), [lines]);
 
-  // Wrapper for toggleLineShown to update operator button and line button in sync
+  // Button handler for line toggle - update operator button and line button in sync
   function toggleLineShownButton(line_id) {
     const updated_lines = toggleLineShownNextState(line_id);
     updateOperatorToggles(updated_lines);
-    setLines(updated_lines);
+    setLinesUpdateStation(updated_lines);
   }
 
   // Show all / hide all stuff
@@ -471,7 +472,9 @@ const LineSelector = forwardRef(({}, ref) => {
       line.shown = show;
     });
 
-    setLines(updated_lines);
+    updateOperatorToggles(updated_lines);
+
+    setLinesUpdateStation(updated_lines);
   }
 
   // Toggles show/hide for all lines for an operator
@@ -484,7 +487,7 @@ const LineSelector = forwardRef(({}, ref) => {
 
     updateOperatorToggles(updated_lines);
 
-    setLines(updated_lines);
+    setLinesUpdateStation(updated_lines);
   }
 
   // Get chosen line ids in a simple list

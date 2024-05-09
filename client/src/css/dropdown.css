@@ -49,7 +49,7 @@
   outline: calc(var(--nav-border-width) * 0.5) solid var(--black);
   width: 100%;
   height: var(--dropdown-line-height);
-  margin-right: 1rem;
+  margin-right: 2rem;
 }
 
 .dropdown-content > .dropdown-line:first-of-type {

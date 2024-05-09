@@ -124,7 +124,7 @@ async function getLineInfo(line_api_urls) {
         "zh-Hant": item[`odpt:railwayTitle`][`zh-Hant`],
       },
       color: item["odpt:color"],
-      code: item["odpt:lineCode"],
+      code: item["odpt:lineCode"] || "no-code",
       operator: item["odpt:operator"].split(":").pop(),
       stationOrder: item["odpt:stationOrder"].map((station) => {
         return {
