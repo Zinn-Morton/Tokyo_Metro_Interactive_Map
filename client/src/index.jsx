@@ -134,8 +134,8 @@ function Index() {
   useImagePreloader(stations, lines);
 
   // Metro info fetch
-  function fetchMetroInfoWrapper() {
-    fetchMetroInfo({
+  async function fetchMetroInfoWrapper(timerId = null) {
+    return await fetchMetroInfo({
       url: url,
       setStations: setStations,
       setLines: setLines,
@@ -147,16 +147,18 @@ function Index() {
   }
 
   // Initial fetch
-  const [timerId, setTimerId] = useState(null);
   useEffect(() => {
-    fetchMetroInfoWrapper();
+    async function fetchData() {
+      const success = await fetchMetroInfoWrapper();
 
-    if (fetchInfoError) {
-      const interval = setInterval(fetchMetroInfoWrapper, 5000);
-      setTimerId(interval);
+      if (!success) {
+        const timerId = setInterval(() => fetchMetroInfoWrapper(timerId), 5000);
+      }
+
+      setLanguageList(getLanguageList());
     }
 
-    setLanguageList(getLanguageList());
+    fetchData();
   }, []);
 
   // Function to set lines while updating station visibility

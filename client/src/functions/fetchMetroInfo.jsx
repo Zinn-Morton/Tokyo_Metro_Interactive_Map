@@ -21,8 +21,12 @@ async function fetchMetroInfo({
     setFetchInfoError("");
 
     if (timerId) clearInterval(timerId);
+
+    return true;
   } catch (err) {
     setFetchInfoError("Error Fetching Metro Info");
+
+    return false;
   }
 }
 
