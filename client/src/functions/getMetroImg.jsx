@@ -12,7 +12,13 @@ function getStationImg(code, index) {
 }
 
 function getLineImg(code) {
-  return `/metro_img/line_symbol/${code}.png`;
+  let line_code = code == "Mb" ? "M" : code;
+
+  return `/metro_img/line_symbol/${line_code}.png`;
 }
 
-export { getStationImg, getLineImg };
+function getOperatorImg(operator) {
+  return `/metro_img/operator_symbol/${operator}.png`;
+}
+
+export { getStationImg, getLineImg, getOperatorImg };

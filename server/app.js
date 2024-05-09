@@ -5,6 +5,8 @@ const path = require("path");
 const fs = require("fs");
 require("dotenv").config();
 
+const { getCoords } = require("./functions/getCoords.js");
+
 // Metro info fetch
 const { cacheMetroInfo } = require("./functions/cacheMetroInfo.js");
 

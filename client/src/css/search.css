@@ -31,11 +31,18 @@
 
 /* Results */
 
+.title-line {
+  position: sticky;
+  top: 0;
+  outline: var(--nav-border-width) solid var(--black);
+}
+
 .search-results {
   outline: calc(var(--nav-border-width) * 0.5) solid var(--black);
   max-height: calc(100vh - var(--nav-height) - var(--dropdown-line-height));
   overflow-y: auto;
   border-radius: inherit;
+  padding-top: calc(var(--nav-border-width) * 0.5);
 }
 
 .search-results > .dropdown-line:last-of-type {

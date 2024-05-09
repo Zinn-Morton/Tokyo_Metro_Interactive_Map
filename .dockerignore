@@ -1,6 +1,7 @@
 # flyctl launch added from server\.gitignore
 server\node_modules
 server\**\.env
+server\cache\metro_info_cache.json
 client\**\.env
 client\node_modules
 fly.toml

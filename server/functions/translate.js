@@ -1,10 +1,14 @@
 const axios = require("axios");
-const rateLimit = require("axios-rate-limit");
+const Bottleneck = require("bottleneck");
+
+// Rate limiting
+const limiter = new Bottleneck({
+  maxConcurrent: 1,
+  minTime: 50,
+});
 
 // Helper function for text translation
 async function translate(text, source, target) {
-  console.log("Translation API used");
-
   const encodedParams = new URLSearchParams();
   encodedParams.set("from", source);
   encodedParams.set("to", target);
@@ -21,15 +25,11 @@ async function translate(text, source, target) {
     data: encodedParams,
   };
 
-  const response = await axiosInstance.request(options);
+  const response = await limiter.schedule(() => axios.request(options));
+
+  console.log("Translate API Used: text = " + text + ", target = " + target);
 
   return response.data.trans;
 }
-
-// Rate limiting
-const axiosInstance = rateLimit(axios.create(), {
-  maxRequests: 5, // Maximum number of requests
-  perMilliseconds: 1000, // Time interval in milliseconds
-});
 
 module.exports = { translate };

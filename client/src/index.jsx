@@ -56,7 +56,11 @@ import { useClickOutside } from "./hooks/useClickOutside.jsx";
 
 // My functions
 import { fetchMetroInfo } from "./functions/fetchMetroInfo.jsx";
-import { getStationImg, getLineImg } from "./functions/getMetroImg.jsx";
+import {
+  getStationImg,
+  getLineImg,
+  getOperatorImg,
+} from "./functions/getMetroImg.jsx";
 import { getChosenLineIds } from "./functions/getChosenLineIds.jsx";
 import { getLanguageList } from "./functions/getLanguageList.jsx";
 import { getTranslations } from "./functions/getTranslations.jsx";
@@ -80,8 +84,11 @@ function Index() {
   const [stations, setStations] = useState([]);
   const [lines, setLines] = useState([]);
   const [geoHashmap, setGeoHashmap] = useState({});
-  const [searchedStationId, setSearchedStationId] = useState(null);
+  const [operators, setOperators] = useState([]);
   const [fetchInfoError, setFetchInfoError] = useState("");
+
+  // User search
+  const [searchedStationId, setSearchedStationId] = useState(null);
 
   // User settings
   const [language, setLanguage] = useState(default_settings.language);
@@ -133,6 +140,7 @@ function Index() {
       setStations: setStations,
       setLines: setLines,
       setGeoHashmap: setGeoHashmap,
+      setOperators: setOperators,
       setFetchInfoError: setFetchInfoError,
       timerId: timerId,
     });
@@ -240,6 +248,7 @@ function Index() {
               toggleLineShown: toggleLineShown,
               showOnlyLines: showOnlyLines,
               geoHashmap: geoHashmap,
+              operators: operators,
               searchedStationId: searchedStationId,
               setSearchedStationId: setSearchedStationId,
               fetchInfoError: fetchInfoError,
@@ -392,7 +401,52 @@ function NavComponent({}) {
 const LineSelector = forwardRef(({}, ref) => {
   const { language } = useContext(SettingsContext);
   const translations = useContext(TranslationContext);
-  const { lines, setLines, toggleLineShown } = useContext(MetroContext);
+  const { lines, setLines, toggleLineShown, operators } =
+    useContext(MetroContext);
+
+  // State of each operator toggle (selected/unselected)
+  const [operatorToggles, setOperatorToggles] = useState({});
+
+  // Initialize all as true
+  useEffect(() => {
+    let operator_toggles = {};
+
+    operators.forEach((operator) => {
+      operator_toggles[operator] = true;
+    });
+
+    setOperatorToggles(operator_toggles);
+  }, [operators]);
+
+  // Each time a station is shown/unshown update the operator toggles if neccesary
+  useEffect(() => {
+    let updated_operator_toggles = { ...operatorToggles };
+
+    operators.forEach((operator) => {
+      let all_false = true;
+      let all_true = true;
+
+      lines.forEach((line) => {
+        if (line.operator === operator) {
+          if (line.shown) {
+            all_false = false;
+          } else {
+            all_true = false;
+          }
+        }
+      });
+
+      if (all_true) {
+        updated_operator_toggles[operator] = true;
+      }
+
+      if (all_false) {
+        updated_operator_toggles[operator] = false;
+      }
+    });
+
+    setOperatorToggles(updated_operator_toggles);
+  }, [lines]);
 
   // Get chosen line ids in a simple list
   const chosen_line_ids = getChosenLineIds(lines);
@@ -405,6 +459,7 @@ const LineSelector = forwardRef(({}, ref) => {
   }
 
   // Show all / hide all stuff
+  // Optional operator - only applies to lines ran by that operator
   function setAllLines(show) {
     let updated_lines = [...lines];
 
@@ -415,49 +470,89 @@ const LineSelector = forwardRef(({}, ref) => {
     setLines(updated_lines);
   }
 
-  return (
-    <div className="dropdown-content right-side" ref={ref}>
-      <DropdownTrainLine
-        button_class="dropdown-line div-button black selected"
-        onClick={() => setAllLines(true)}
-        left_elem={
-          <FontAwesomeIcon icon={faSquareCheck} className="dropdown-icon" />
-        }
-        p_text={translations["Show-All"]?.[language]}
-      />
-      <DropdownTrainLine
-        button_class="dropdown-line div-button black unselected"
-        onClick={() => setAllLines(false)}
-        left_elem={
-          <FontAwesomeIcon icon={faSquareXmark} className="dropdown-icon" />
-        }
-        p_text={translations["Hide-All"]?.[language]}
-      />
-      {lines.map((line) => {
-        let selected = false;
-        if (chosen_line_ids && chosen_line_ids.includes(line.id)) {
-          selected = true;
-        }
+  // Toggles show/hide for all lines for an operator
+  function toggleAllOperatorLines(operator, show) {
+    let updated_lines = [...lines];
 
-        return (
+    updated_lines.forEach((line) => {
+      if (line.operator === operator) line.shown = !operatorToggles[operator];
+    });
+
+    setLines(updated_lines);
+  }
+
+  return (
+    <div className="line-results">
+      <div className="dropdown-content right-side line-results" ref={ref}>
+        <div className="control-all">
           <DropdownTrainLine
-            button_class={
-              selected
-                ? "dropdown-line div-button black selected"
-                : "dropdown-line div-button black unselected"
-            }
-            onClick={() => toggleLineShown(line.id)}
+            button_class="dropdown-line div-button black selected"
+            onClick={() => setAllLines(true)}
             left_elem={
-              <img
-                src={getLineImg(line.code[0])}
-                className="metro-img"
-                alt=""
-              />
+              <FontAwesomeIcon icon={faSquareCheck} className="dropdown-icon" />
             }
-            p_text={line.name[language]}
+            p_text={translations["Show-All"]?.[language]}
           />
-        );
-      })}
+          <DropdownTrainLine
+            button_class="dropdown-line div-button black unselected"
+            onClick={() => setAllLines(false)}
+            left_elem={
+              <FontAwesomeIcon icon={faSquareXmark} className="dropdown-icon" />
+            }
+            p_text={translations["Hide-All"]?.[language]}
+          />
+        </div>
+        {/* Section for each operator */}
+        {operators.map((operator) => {
+          return (
+            <>
+              <DropdownTrainLine
+                button_class={
+                  "dropdown-line div-button black operator-line " +
+                  (operatorToggles[operator] ? "selected" : "unselected")
+                }
+                onClick={() => {
+                  toggleAllOperatorLines(operator);
+                }}
+                left_elem={
+                  <img
+                    src={getOperatorImg(operator)}
+                    className="metro-img"
+                    alt=""
+                  />
+                }
+                p_text={operator}
+              />
+              {/* Line for each line */}
+              {lines.map((line) => {
+                const selected =
+                  chosen_line_ids && chosen_line_ids.includes(line.id);
+
+                // Conditionally render if its ran by the above operator
+                return (
+                  line.operator === operator && (
+                    <DropdownTrainLine
+                      button_class={
+                        "dropdown-line div-button black " +
+                        (selected ? "selected" : "unselected")
+                      }
+                      onClick={() => toggleLineShown(line.id)}
+                      left_elem={
+                        <img
+                          src={getLineImg(line.code)}
+                          className="metro-img indent"
+                          alt=""
+                        />
+                      }
+                      p_text={line.name[language]}
+                    />
+                  )
+                );
+              })}
+            </>
+          );
+        })}
+      </div>
     </div>
   );
 });
@@ -615,7 +710,7 @@ const SearchComponent = forwardRef(
           {/* Search results */}
           <div className="search-results">
             {/* Station results */}
-            <div className="dropdown-line label-line search-line">
+            <div className="dropdown-line label-line search-line title-line">
               <h3>{translations["Stations"][language]}:</h3>
             </div>
             {results.station_matches.length != 0 && (
@@ -638,7 +733,7 @@ const SearchComponent = forwardRef(
               </div>
             )}
             {/* Line results */}
-            <div className="dropdown-line label-line search-line">
+            <div className="dropdown-line label-line search-line title-line">
               <h3>{translations["Lines"][language]}:</h3>
             </div>
             {results.line_matches.length != 0 && (
@@ -650,7 +745,7 @@ const SearchComponent = forwardRef(
                       onClick={() => handleLineSearchClick(line.id)}
                       left_elem={
                         <img
-                          src={getLineImg(line.code[0])}
+                          src={getLineImg(line.code)}
                           className="metro-img"
                           alt=""
                         />
@@ -681,6 +776,7 @@ const InfoPopup = forwardRef(({ setInfoPopup }, ref) => {
       />
       <h1>Tokyo Metro Interactive Map</h1>
       <h3>Created by Zinn Morton</h3>
+      <h4>zinnkayosmorton@gmail.com</h4>
       <div className="break" />
       <h4>
         Data from{" "}
@@ -691,8 +787,21 @@ const InfoPopup = forwardRef(({ setInfoPopup }, ref) => {
       <div className="break" />
       <h4>
         Translations from{" "}
-        <a href="https://rapidapi.com/undergroundapi-undergroundapi-default/api/google-translate113">
+        <a
+          href="https://rapidapi.com/undergroundapi-undergroundapi-default/api/google-translate113"
+          target="_blank"
+        >
           undergroundAPI's Google Translate API on rapidapi.com
+        </a>
+      </h4>
+      <div className="break" />
+      <h4>
+        Some station geological data was gathered from{" "}
+        <a
+          href="https://nominatim.org/release-docs/develop/api/Overview/"
+          target="_blank"
+        >
+          Nominatim API
         </a>
       </h4>
       <div className="break" />
@@ -709,6 +818,13 @@ const InfoPopup = forwardRef(({ setInfoPopup }, ref) => {
         </a>
       </h4>
       <div className="break" />
+      <h4>
+        Note: Data may not be up to date
+        <br />
+        Non Tokyo Metro stations/lines were machine translated to Korean and
+        Chinese
+      </h4>
+      <div className="break"></div>
     </div>
   );
 });

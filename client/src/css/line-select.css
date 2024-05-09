@@ -4,8 +4,22 @@
 }
 
 /* Line selector */
-.line-selector p {
-  font-size: 100%;
+.line-results {
+  overflow-y: auto;
+}
+
+/* Lines */
+.operator-line {
+  position: sticky;
+  top: calc(2 * var(--dropdown-line-height));
+  outline: var(--nav-border-width) solid var(--black);
+}
+
+/* Show/hide all */
+.control-all {
+  position: sticky;
+  top: 0;
+  outline: var(--nav-border-width) solid var(--black);
 }
 
 /* Button stuff */
@@ -30,6 +44,10 @@
 .metro-img {
   background-color: var(--black);
   border-radius: 20%;
+}
+
+.indent {
+  margin-left: calc(var(--metro-img-size) + 5px);
 }
 
 /* Mobile */
