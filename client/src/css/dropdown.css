@@ -67,5 +67,6 @@
     border-left: 0;
     border-right: 0;
     width: 100%;
+    height: calc(100% - var(--nav-height));
   }
 }

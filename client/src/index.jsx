@@ -181,13 +181,17 @@ function Index() {
   }, [lines]);
 
   // Toggles a line showing on the map given the line id
-  function toggleLineShown(id) {
+  function toggleLineShownNextState(id) {
     let updated_lines = [...lines];
 
     const shown = updated_lines.find((line) => line.id === id).shown;
     updated_lines.find((line) => line.id === id).shown = !shown;
 
-    setLines(updated_lines);
+    return updated_lines;
+  }
+
+  function toggleLineShown(id) {
+    setLines(toggleLineShown(id));
   }
 
   // Hides all lines showing on map except those with ids in the input array
@@ -245,6 +249,7 @@ function Index() {
               setStations: setStations,
               lines: lines,
               setLines: setLines,
+              toggleLineShownNextState: toggleLineShownNextState,
               toggleLineShown: toggleLineShown,
               showOnlyLines: showOnlyLines,
               geoHashmap: geoHashmap,
@@ -401,7 +406,7 @@ function NavComponent({}) {
 const LineSelector = forwardRef(({}, ref) => {
   const { language } = useContext(SettingsContext);
   const translations = useContext(TranslationContext);
-  const { lines, setLines, toggleLineShown, operators } =
+  const { lines, setLines, toggleLineShownNextState, operators } =
     useContext(MetroContext);
 
   // State of each operator toggle (selected/unselected)
@@ -418,15 +423,15 @@ const LineSelector = forwardRef(({}, ref) => {
     setOperatorToggles(operator_toggles);
   }, [operators]);
 
-  // Each time a station is shown/unshown update the operator toggles if neccesary
-  useEffect(() => {
+  // Update operator toggles from lines
+  function updateOperatorToggles(updated_lines) {
     let updated_operator_toggles = { ...operatorToggles };
 
     operators.forEach((operator) => {
       let all_false = true;
       let all_true = true;
 
-      lines.forEach((line) => {
+      updated_lines.forEach((line) => {
         if (line.operator === operator) {
           if (line.shown) {
             all_false = false;
@@ -446,20 +451,19 @@ const LineSelector = forwardRef(({}, ref) => {
     });
 
     setOperatorToggles(updated_operator_toggles);
-  }, [lines]);
+  }
 
-  // Get chosen line ids in a simple list
-  const chosen_line_ids = getChosenLineIds(lines);
-  if (lines) {
-    lines.forEach((line) => {
-      if (line.shown && !chosen_line_ids.includes(line.id)) {
-        chosen_line_ids.push(line.id);
-      }
-    });
+  // Each time a station is shown/unshown update the operator toggles if neccesary
+  useEffect(() => updateOperatorToggles(lines), [lines]);
+
+  // Wrapper for toggleLineShown to update operator button and line button in sync
+  function toggleLineShownButton(line_id) {
+    const updated_lines = toggleLineShownNextState(line_id);
+    updateOperatorToggles(updated_lines);
+    setLines(updated_lines);
   }
 
   // Show all / hide all stuff
-  // Optional operator - only applies to lines ran by that operator
   function setAllLines(show) {
     let updated_lines = [...lines];
 
@@ -471,14 +475,26 @@ const LineSelector = forwardRef(({}, ref) => {
   }
 
   // Toggles show/hide for all lines for an operator
-  function toggleAllOperatorLines(operator, show) {
+  function toggleOperatorLines(operator, show) {
     let updated_lines = [...lines];
 
     updated_lines.forEach((line) => {
       if (line.operator === operator) line.shown = !operatorToggles[operator];
     });
 
+    updateOperatorToggles(updated_lines);
+
     setLines(updated_lines);
+  }
+
+  // Get chosen line ids in a simple list
+  const chosen_line_ids = getChosenLineIds(lines);
+  if (lines) {
+    lines.forEach((line) => {
+      if (line.shown && !chosen_line_ids.includes(line.id)) {
+        chosen_line_ids.push(line.id);
+      }
+    });
   }
 
   return (
@@ -512,7 +528,7 @@ const LineSelector = forwardRef(({}, ref) => {
                   (operatorToggles[operator] ? "selected" : "unselected")
                 }
                 onClick={() => {
-                  toggleAllOperatorLines(operator);
+                  toggleOperatorLines(operator);
                 }}
                 left_elem={
                   <img
@@ -536,7 +552,7 @@ const LineSelector = forwardRef(({}, ref) => {
                         "dropdown-line div-button black " +
                         (selected ? "selected" : "unselected")
                       }
-                      onClick={() => toggleLineShown(line.id)}
+                      onClick={() => toggleLineShownButton(line.id)}
                       left_elem={
                         <img
                           src={getLineImg(line.code)}
