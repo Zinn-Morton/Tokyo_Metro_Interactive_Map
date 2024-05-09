@@ -1,11 +1,12 @@
 const express = require("express");
 
-const { getInfo } = require("../controllers/metroInfo.js");
+const { getInfo, getRoute } = require("../controllers/metroInfo.js");
 
 const router = express.Router();
 
 // Base path: /api/v1/fare
 router.get("/getInfo", getInfo);
+router.get("/getRoute/:startId/:endId", getRoute);
 
 // Remnant from Task Manager - kept for reference
 // router.post("/signup", signup);

@@ -89,12 +89,16 @@ async function cacheMetroInfo() {
   // Get list of operators
   const operators = getAllOperators(line_info);
 
+  // Build adjacency list of stations
+  const adj_list = buildAdjList(line_info, station_to_coords);
+
   // Package for metro info cache
   const ret = {
     stationInfo: unique_stations,
     lineInfo: line_info,
     stationToCoords: station_to_coords,
     operators: operators,
+    adjList: adj_list,
   };
 
   await writeToCache(ret, process.env.METRO_INFO_CACHE_FILE_PATH);
@@ -596,6 +600,85 @@ function getAllOperators(line_info) {
   );
 
   return sorted_operators;
+}
+
+// Helper function to bulid adjacency list of stations
+function buildAdjList(line_info, station_to_coords) {
+  const adj_list = {};
+
+  // Function to get distance between two stations
+  function getStationDistance(station_id1, station_id2) {
+    // Found here https://stackoverflow.com/questions/27928/calculate-distance-between-two-latitude-longitude-points-haversine-formula
+    function getDistanceFromLatLonInKm([lat1, lon1], [lat2, lon2]) {
+      function deg2rad(deg) {
+        return deg * (Math.PI / 180);
+      }
+
+      var R = 6371; // Radius of the earth in km
+      var dLat = deg2rad(lat2 - lat1); // deg2rad below
+      var dLon = deg2rad(lon2 - lon1);
+      var a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(deg2rad(lat1)) *
+          Math.cos(deg2rad(lat2)) *
+          Math.sin(dLon / 2) *
+          Math.sin(dLon / 2);
+      var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      var d = R * c; // Distance in km
+      return d;
+    }
+
+    return getDistanceFromLatLonInKm(
+      station_to_coords[station_id1],
+      station_to_coords[station_id2]
+    );
+  }
+
+  // Function to add to adjacency list
+  function addToAdjList(cur_station_id, connecting_station_id, line_id) {
+    // Initialize adj_list[cur_station_id] if not already initialized
+    if (!adj_list[cur_station_id]) {
+      adj_list[cur.station] = {};
+    }
+
+    // Get distance between the two stations
+
+    // Initialize adj_list[cur_station_id][connecting_station_id] if not already initialized
+    adj_list[cur_station_id][connecting_station_id] = adj_list[cur_station_id][
+      connecting_station_id
+    ] || {
+      distance: getStationDistance(cur_station_id, connecting_station_id),
+      connectingLines: [],
+    };
+
+    // Add connection
+    adj_list[cur_station_id][connecting_station_id].connectingLines.push(
+      line_id
+    );
+  }
+
+  // Build adjacencies for each line
+  line_info.forEach((line) => {
+    const station_order = line.stationOrder;
+
+    for (let i = 0; i < station_order.length; i++) {
+      // Get cur, previous, and next
+      const cur = station_order[i];
+      const prev = i > 0 ? station_order[i - 1] : null;
+      const next = i < station_order.length - 1 ? station_order[i + 1] : null;
+
+      // Initialize adj_list[cur.station] if not already initialized
+      if (!adj_list[cur.station]) {
+        adj_list[cur.station] = {};
+      }
+
+      if (prev) addToAdjList(cur.station, prev.station, line.id);
+
+      if (next) addToAdjList(cur.station, next.station, line.id);
+    }
+  });
+
+  return adj_list;
 }
 
 module.exports = { cacheMetroInfo };
