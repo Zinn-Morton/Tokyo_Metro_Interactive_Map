@@ -32,8 +32,8 @@ function getTranslations() {
       en: "Find Route",
       ja: "ルートを検索する",
       ko: "루트 검색",
-      "zh-Hans": "寻找路线",
-      "zh-Hant": "尋找路線",
+      "zh-Hans": "路线检索",
+      "zh-Hant": "路線檢索",
     },
   };
 }

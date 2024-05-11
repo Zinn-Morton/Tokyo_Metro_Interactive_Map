@@ -277,6 +277,7 @@ function Site() {
   return (
     <div className={`site-container ${darkMode ? "" : "light"}`}>
       <NavComponent />
+      <TestComp />
       <div className="map-container">
         <MapComponent />
       </div>
@@ -335,18 +336,6 @@ function NavComponent({}) {
     [search_dropdown_btn_ref, search_dropdown_ref, darkmode_ref, maptoggle_ref],
     () => {
       setSearchDropdown(false);
-    }
-  );
-
-  useClickOutside(
-    [
-      direction_dropdown_btn_ref,
-      direction_dropdown_ref,
-      darkmode_ref,
-      maptoggle_ref,
-    ],
-    () => {
-      setDirectionDropdown(false);
     }
   );
 
@@ -414,7 +403,7 @@ function NavComponent({}) {
           />
         </div>
         {/* Route finder */}
-        {/* <div className="dropdown">
+        <div className="dropdown">
           <FontAwesomeIcon
             icon={faRoute}
             className="nav-icon nav-search button"
@@ -425,7 +414,7 @@ function NavComponent({}) {
             directionDropdown={directionDropdown}
             ref={direction_dropdown_ref}
           />
-        </div> */}
+        </div>
       </nav>
       {/* Info popup */}
       {infoPopup && <InfoPopup ref={popup_ref} setInfoPopup={setInfoPopup} />}

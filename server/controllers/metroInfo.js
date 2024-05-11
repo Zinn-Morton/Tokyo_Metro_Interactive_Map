@@ -6,6 +6,9 @@ const asyncWrapper = require("../middleware/async.js");
 // Cache for metro info
 const { readFromCache } = require("../cache/cacheFuncs.js");
 
+// Language list
+const language_list = ["en", "ja", "ko", "zh-Hans", "zh-Hant"];
+
 // Sends metro info to frontend
 const getInfo = asyncWrapper(async (req, res) => {
   // Get metro info from cache
@@ -23,28 +26,35 @@ const getRoute = asyncWrapper(async (req, res) => {
     process.env.METRO_INFO_CACHE_FILE_PATH
   );
 
-  // Helper function to get station info from id
+  // Helper function to get station info from name
   // Handles casing differences
-  function getStationInfoFromId(id) {
-    return stationInfo.find(
-      (station) => station.id.toLowerCase() === id.toLowerCase()
-    );
+  function getStationFromName(name) {
+    for (station of stationInfo) {
+      for (const language of language_list) {
+        if (station.name[language].toLowerCase() === name.toLowerCase())
+          return station;
+      }
+    }
+
+    return null;
   }
 
   // Get station info for start and end
-  const start_station = getStationInfoFromId(req.params.startId);
-  const end_station = getStationInfoFromId(req.params.endId);
+  const start_station = getStationFromName(req.params.startName);
+  const end_station = getStationFromName(req.params.endName);
 
-  // Start and end station ids
-  const start_id = start_station.id;
-  const end_id = end_station.id;
+  console.log(start_station, end_station);
 
   // Check if stations are valid
   if (!start_station || !end_station) {
     return res
       .status(StatusCodes.BAD_REQUEST)
-      .json({ error: "Invalid start or end station id" });
+      .json({ error: "Invalid start or end station name" });
   }
+
+  // Start and end station ids
+  const start_id = start_station.id;
+  const end_id = end_station.id;
 
   // Dijkstra's algorithm to find shortest path
 

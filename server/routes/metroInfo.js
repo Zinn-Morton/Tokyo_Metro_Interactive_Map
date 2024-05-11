@@ -6,7 +6,7 @@ const router = express.Router();
 
 // Base path: /api/v1/fare
 router.get("/getInfo", getInfo);
-router.get("/getRoute/:startId/:endId", getRoute);
+router.get("/getRoute/:startName/:endName", getRoute);
 
 // Remnant from Task Manager - kept for reference
 // router.post("/signup", signup);
