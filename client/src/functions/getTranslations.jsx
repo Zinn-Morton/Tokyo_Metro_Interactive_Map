@@ -28,6 +28,13 @@ function getTranslations() {
       "zh-Hans": "线",
       "zh-Hant": "線",
     },
+    "Find-Route": {
+      en: "Find Route",
+      ja: "ルートを検索する",
+      ko: "루트 검색",
+      "zh-Hans": "寻找路线",
+      "zh-Hant": "尋找路線",
+    },
   };
 }
 

@@ -1,0 +1,27 @@
+/* Container for search input */
+.direction-search-input {
+  display: flex;
+  flex-direction: column;
+  padding: 0.5rem 10px;
+}
+
+/* Searchbars */
+.direction-search-line {
+  display: flex;
+}
+
+/* Ellipsis */
+.directions-ellipsis {
+  align-self: baseline;
+  margin: 5px calc(var(--metro-img-size) * 0.42);
+}
+
+/* Submit search */
+.direction-search-submit {
+  margin-top: 0.5rem;
+  height: var(--search-height);
+  background-color: var(--selected-color);
+  color: var(--black);
+  border: var(--nav-border-width) solid var(--black);
+  border-radius: 5px;
+}

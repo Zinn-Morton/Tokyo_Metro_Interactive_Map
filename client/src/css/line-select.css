@@ -16,6 +16,10 @@
   outline: var(--nav-border-width) solid var(--black);
 }
 
+.railway-line {
+  margin-right: 2rem;
+}
+
 /* Show/hide all */
 .control-all {
   position: sticky;

@@ -36,7 +36,10 @@ import {
   faLanguage,
   faCircleInfo,
   faCircleXmark,
-  faSpaghettiMonsterFlying,
+  faRoute,
+  faLocationArrow,
+  faMapPin,
+  faEllipsisVertical,
 } from "@fortawesome/free-solid-svg-icons";
 import { faMap } from "@fortawesome/free-regular-svg-icons";
 
@@ -49,6 +52,7 @@ import "./css/dropdown.css";
 import "./css/settings.css";
 import "./css/line-select.css";
 import "./css/search.css";
+import "./css/direction-search.css";
 
 // My hooks
 import { useImagePreloader } from "./hooks/useImagePreloader.jsx";
@@ -291,6 +295,7 @@ function NavComponent({}) {
   const [settingsDropdown, setSettingsDropdown] = useState(false);
   const [linesDropdown, setLinesDropdown] = useState(false);
   const [searchDropdown, setSearchDropdown] = useState(false);
+  const [directionDropdown, setDirectionDropdown] = useState(false);
 
   // A bunch of references
   const maptoggle_ref = useRef(null);
@@ -301,6 +306,8 @@ function NavComponent({}) {
   const lines_dropdown_ref = useRef(null);
   const search_dropdown_btn_ref = useRef(null);
   const search_dropdown_ref = useRef(null);
+  const direction_dropdown_btn_ref = useRef(null);
+  const direction_dropdown_ref = useRef(null);
   const popup_btn_ref = useRef(null);
   const popup_ref = useRef(null);
 
@@ -328,6 +335,18 @@ function NavComponent({}) {
     [search_dropdown_btn_ref, search_dropdown_ref, darkmode_ref, maptoggle_ref],
     () => {
       setSearchDropdown(false);
+    }
+  );
+
+  useClickOutside(
+    [
+      direction_dropdown_btn_ref,
+      direction_dropdown_ref,
+      darkmode_ref,
+      maptoggle_ref,
+    ],
+    () => {
+      setDirectionDropdown(false);
     }
   );
 
@@ -394,6 +413,19 @@ function NavComponent({}) {
             setSearchDropdown={setSearchDropdown}
           />
         </div>
+        {/* Route finder */}
+        {/* <div className="dropdown">
+          <FontAwesomeIcon
+            icon={faRoute}
+            className="nav-icon nav-search button"
+            ref={direction_dropdown_btn_ref}
+            onClick={() => setDirectionDropdown(!directionDropdown)}
+          ></FontAwesomeIcon>
+          <DirectionSearch
+            directionDropdown={directionDropdown}
+            ref={direction_dropdown_ref}
+          />
+        </div> */}
       </nav>
       {/* Info popup */}
       {infoPopup && <InfoPopup ref={popup_ref} setInfoPopup={setInfoPopup} />}
@@ -503,7 +535,7 @@ const LineSelector = forwardRef(({}, ref) => {
       <div className="dropdown-content right-side line-results" ref={ref}>
         <div className="control-all">
           <DropdownTrainLine
-            button_class="dropdown-line div-button black selected"
+            button_class="dropdown-line railway-line div-button black selected"
             onClick={() => setAllLines(true)}
             left_elem={
               <FontAwesomeIcon icon={faSquareCheck} className="dropdown-icon" />
@@ -511,7 +543,7 @@ const LineSelector = forwardRef(({}, ref) => {
             p_text={translations["Show-All"]?.[language]}
           />
           <DropdownTrainLine
-            button_class="dropdown-line div-button black unselected"
+            button_class="dropdown-line railway-line div-button black unselected"
             onClick={() => setAllLines(false)}
             left_elem={
               <FontAwesomeIcon icon={faSquareXmark} className="dropdown-icon" />
@@ -525,7 +557,7 @@ const LineSelector = forwardRef(({}, ref) => {
             <>
               <DropdownTrainLine
                 button_class={
-                  "dropdown-line div-button black operator-line " +
+                  "dropdown-line railway-line div-button black operator-line " +
                   (operatorToggles[operator] ? "selected" : "unselected")
                 }
                 onClick={() => {
@@ -550,7 +582,7 @@ const LineSelector = forwardRef(({}, ref) => {
                   line.operator === operator && (
                     <DropdownTrainLine
                       button_class={
-                        "dropdown-line div-button black " +
+                        "dropdown-line railway-line div-button black " +
                         (selected ? "selected" : "unselected")
                       }
                       onClick={() => toggleLineShownButton(line.id)}
@@ -711,10 +743,12 @@ const SearchComponent = forwardRef(
         <div className="dropdown-content right-side" ref={ref}>
           {/* Search input */}
           <div className="dropdown-line search-line">
-            <FontAwesomeIcon
-              icon={faMagnifyingGlass}
-              className="search-side-icon"
-            />
+            <div className="search-side-icon-background">
+              <FontAwesomeIcon
+                icon={faMagnifyingGlass}
+                className="search-side-icon"
+              />
+            </div>
             <input
               type="text"
               ref={searchbox_ref}
@@ -779,6 +813,47 @@ const SearchComponent = forwardRef(
     );
   }
 );
+
+// Search for directions
+const DirectionSearch = forwardRef(({ directionDropdown }, ref) => {
+  const { language } = useContext(SettingsContext);
+  const translations = useContext(TranslationContext);
+
+  return (
+    directionDropdown && (
+      <div className="dropdown-content right-side" ref={ref}>
+        <div className="direction-search-input">
+          {/* Start input */}
+          <div className="direction-search-line">
+            <div className="search-side-icon-background">
+              <FontAwesomeIcon
+                icon={faLocationArrow}
+                className="search-side-icon"
+              />
+            </div>
+            <input type="text" className="search-input" placeholder="..." />
+          </div>
+          {/* Divider ellipsis */}
+          <FontAwesomeIcon
+            icon={faEllipsisVertical}
+            className="directions-ellipsis"
+          ></FontAwesomeIcon>
+          {/* Destination input */}
+          <div className="direction-search-line">
+            <div className="search-side-icon-background">
+              <FontAwesomeIcon icon={faMapPin} className="search-side-icon" />
+            </div>
+            <input type="text" className="search-input" placeholder="..." />
+          </div>
+          {/* Start search */}
+          <button className="direction-search-submit">
+            {translations["Find-Route"][language]}
+          </button>
+        </div>
+      </div>
+    )
+  );
+});
 
 // On screen info popup
 const InfoPopup = forwardRef(({ setInfoPopup }, ref) => {
@@ -1145,4 +1220,4 @@ function mapIcon(zoom, station) {
   });
 }
 
-export default Index;
+export { Index };

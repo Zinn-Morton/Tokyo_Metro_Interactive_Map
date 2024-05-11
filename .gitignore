@@ -1,2 +1,4 @@
 /fullstack
 server/cache/metro_info_cache.json
+client/client.code-workspace
+server/server.code-workspace

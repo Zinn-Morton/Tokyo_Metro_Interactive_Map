@@ -7,7 +7,7 @@
 .search-input {
   color: var(--opposite-color);
   width: 30vw;
-  height: 100%;
+  height: var(--search-height);
   background-color: var(--background-color);
   border: none;
   border-radius: 0 5px 5px 0;
@@ -16,16 +16,17 @@
 
 .search-side-icon-background {
   width: var(--metro-img-size);
-  height: 100%;
-  padding: 12.5% 12.5%;
+  height: var(--search-height);
   background-color: var(--background-color);
+  border-radius: 5px 0 0 5px;
+  display: flex;
+  justify-content: center;
 }
 
 .search-side-icon {
   color: var(--opposite-color);
-  background-color: var(--background-color);
   height: 65%;
-  border: calc(var(--search-height) * 0.175) solid var(--background-color);
+  padding: calc(var(--search-height) * 0.175);
   border-radius: 5px 0 0 5px;
 }
 
