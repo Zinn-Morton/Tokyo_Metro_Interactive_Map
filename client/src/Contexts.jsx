@@ -80,7 +80,7 @@ function ContextWrapper({ children }) {
   useImagePreloader(stations, lines);
 
   // Metro info fetch
-  async function fetchMetroInfoWrapper(timerId = null) {
+  async function fetchMetroInfoWrapper(clearRetryInterval = null) {
     return await fetchMetroInfo({
       BACKEND_URL: BACKEND_URL,
       setStations: setStations,
@@ -88,19 +88,35 @@ function ContextWrapper({ children }) {
       setGeoHashmap: setGeoHashmap,
       setOperators: setOperators,
       setFetchInfoError: setFetchInfoError,
-      timerId: timerId,
+      clearRetryInterval: clearRetryInterval,
     });
   }
 
   // Initial fetch
+  const retryIntervalRef = useRef(null);
   useEffect(() => {
-    const success = fetchMetroInfoWrapper();
+    // Fetch and rety on loop if failed
+    async function initialFetch() {
+      const success = await fetchMetroInfoWrapper();
 
-    if (!success) {
-      const timerId = setInterval(() => fetchMetroInfoWrapper(timerId), 5000);
+      if (!success) {
+        retryIntervalRef.current = setInterval(
+          async () =>
+            await fetchMetroInfoWrapper(() =>
+              clearInterval(retryIntervalRef.current)
+            ),
+          5000
+        );
+      }
     }
 
+    initialFetch();
+
     setLanguageList(getLanguageList());
+
+    return () => {
+      if (retryIntervalRef.current) clearInterval(retryIntervalRef.current);
+    };
   }, []);
 
   // Function to set lines while updating station visibility
