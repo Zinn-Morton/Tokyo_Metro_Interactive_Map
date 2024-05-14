@@ -1,6 +1,6 @@
 .popup-content {
   position: fixed;
-  top: 40%;
+  top: calc(var(--nav-height) + 40dvh);
   left: 50%;
   transform: translate(-50%, -50%);
   z-index: 999;

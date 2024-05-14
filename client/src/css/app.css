@@ -7,6 +7,7 @@
   --light-blue: #6af2f2;
   --red: #da7561;
   --light-green: #60b99a;
+  --select-hover: #468684;
 }
 
 :root {
@@ -39,6 +40,7 @@
   --opposite-color: var(--black);
   --second-background-color: var(--white);
   --selected-color: var(--light-green);
+  --select-hover: #deebff;
 }
 
 .black {
@@ -77,4 +79,23 @@
 /* Line break */
 .break {
   height: 1rem;
+}
+
+/* Searcbar with icon next to it */
+.searchbar-with-icon {
+  display: flex;
+}
+
+/* Custom scroll */
+.rcs-custom-scroll-handle .custom-scroll-handle {
+  background-color: var(--black) !important;
+  outline: 1px solid rgba(var(--black), 0.5) !important;
+}
+
+.rcs-custom-scrollbar {
+  opacity: 100 !important;
+}
+
+.rcs-inner-container > div {
+  margin-right: 0 !important;
 }

@@ -1,7 +1,7 @@
 import axios from "axios";
 
 async function fetchMetroInfo({
-  url,
+  BACKEND_URL,
   setStations,
   setLines,
   setGeoHashmap,
@@ -10,7 +10,7 @@ async function fetchMetroInfo({
   timerId,
 }) {
   try {
-    const response = await axios.get(`${url}/api/v1/metroInfo/getInfo`);
+    const response = await axios.get(`${BACKEND_URL}/api/v1/metroInfo/getInfo`);
 
     // Set all states
     setLines(response.data.lineInfo);

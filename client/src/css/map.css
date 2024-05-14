@@ -66,11 +66,11 @@
 /* Map popup stuff */
 .leaflet-popup-content-wrapper {
   width: fit-content !important;
-  background-color: var(--opposite-color);
+  background-color: var(--opposite-color) !important;
 }
 
 .leaflet-popup-tip {
-  background-color: var(--opposite-color);
+  background-color: var(--opposite-color) !important;
 }
 
 .leaflet-popup-content {

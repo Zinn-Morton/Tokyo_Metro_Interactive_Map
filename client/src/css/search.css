@@ -6,7 +6,7 @@
 
 .search-input {
   color: var(--opposite-color);
-  width: 30vw;
+  width: 30dvw;
   height: var(--search-height);
   background-color: var(--background-color);
   border: none;
@@ -21,6 +21,7 @@
   border-radius: 5px 0 0 5px;
   display: flex;
   justify-content: center;
+  align-items: center;
 }
 
 .search-side-icon {
@@ -28,6 +29,10 @@
   height: 65%;
   padding: calc(var(--search-height) * 0.175);
   border-radius: 5px 0 0 5px;
+}
+
+.searchbar-with-icon {
+  flex-grow: 1;
 }
 
 /* Results */
@@ -38,10 +43,9 @@
   outline: var(--nav-border-width) solid var(--black);
 }
 
-.search-results {
+.search-results-container {
   outline: calc(var(--nav-border-width) * 0.5) solid var(--black);
-  max-height: calc(100vh - var(--nav-height) - var(--dropdown-line-height));
-  overflow-y: auto;
+  max-height: calc(100dvh - var(--nav-height) - var(--dropdown-line-height));
   border-radius: inherit;
   padding-top: calc(var(--nav-border-width) * 0.5);
 }

@@ -3,16 +3,16 @@
   --metro-img-size-mobile: 2rem;
 }
 
-/* Line selector */
-.line-results {
-  overflow-y: auto;
-  overflow-x: hidden;
+/* Lines */
+.line-toggles-container {
+  max-height: calc(
+    100dvh - var(--nav-height) - (2 * var(--dropdown-line-height))
+  ) !important;
 }
 
-/* Lines */
 .operator-line {
   position: sticky;
-  top: calc(2 * var(--dropdown-line-height));
+  top: var(--nav-border-width);
   outline: var(--nav-border-width) solid var(--black);
 }
 

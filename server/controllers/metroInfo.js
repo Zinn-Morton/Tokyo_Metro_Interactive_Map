@@ -6,14 +6,20 @@ const asyncWrapper = require("../middleware/async.js");
 // Cache for metro info
 const { readFromCache } = require("../cache/cacheFuncs.js");
 
-// Language list
-const language_list = ["en", "ja", "ko", "zh-Hans", "zh-Hant"];
+// My functions
+const {
+  getDirectionStation,
+  getStationFromId,
+} = require("../functions/metroLookupFuncs.js");
+const { getArrIntersection } = require("../functions/arrFuncs.js");
 
 // Sends metro info to frontend
 const getInfo = asyncWrapper(async (req, res) => {
   // Get metro info from cache
-  let ret = ({ stationInfo, lineInfo, stationToCoords, operators } =
-    await readFromCache(process.env.METRO_INFO_CACHE_FILE_PATH));
+  const { stationInfo, lineInfo, stationToCoords, operators } =
+    await readFromCache(process.env.METRO_INFO_CACHE_FILE_PATH);
+
+  const ret = { stationInfo, lineInfo, stationToCoords, operators };
 
   // Send to frontend
   res.status(StatusCodes.OK).json(ret);
@@ -22,28 +28,13 @@ const getInfo = asyncWrapper(async (req, res) => {
 // Gets the route between two locations
 const getRoute = asyncWrapper(async (req, res) => {
   // Get metro info from cache
-  const { stationInfo, adjList } = await readFromCache(
+  const { stationInfo, lineInfo, adjList } = await readFromCache(
     process.env.METRO_INFO_CACHE_FILE_PATH
   );
 
-  // Helper function to get station info from name
-  // Handles casing differences
-  function getStationFromName(name) {
-    for (station of stationInfo) {
-      for (const language of language_list) {
-        if (station.name[language].toLowerCase() === name.toLowerCase())
-          return station;
-      }
-    }
-
-    return null;
-  }
-
   // Get station info for start and end
-  const start_station = getStationFromName(req.params.startName);
-  const end_station = getStationFromName(req.params.endName);
-
-  console.log(start_station, end_station);
+  const start_station = getStationFromId(stationInfo, req.params.startId);
+  const end_station = getStationFromId(stationInfo, req.params.endId);
 
   // Check if stations are valid
   if (!start_station || !end_station) {
@@ -55,6 +46,13 @@ const getRoute = asyncWrapper(async (req, res) => {
   // Start and end station ids
   const start_id = start_station.id;
   const end_id = end_station.id;
+
+  // If the same station no need to get directions
+  if (start_id === end_id) {
+    return res
+      .status(StatusCodes.BAD_REQUEST)
+      .json({ error: "Same start and end station" });
+  }
 
   // Dijkstra's algorithm to find shortest path
 
@@ -140,7 +138,7 @@ const getRoute = asyncWrapper(async (req, res) => {
 
   // Recover solution from traceback
   const END_ID = "END_STATION_ID";
-  const solution = [{ cur_id: END_ID, prev_lines: [] }];
+  let solution = [{ cur_id: END_ID, prev_lines: [] }];
   let cur_id = end_id;
   while (cur_id !== START_PREV_ID) {
     // Get dijkstra's hashmap for current station
@@ -158,11 +156,7 @@ const getRoute = asyncWrapper(async (req, res) => {
       const prev = solution[i - 1];
 
       // If there is overlap between an entry and the previous then take the overlap
-      function getOverlap(arr1, arr2) {
-        return arr1.filter((value) => arr2.includes(value));
-      }
-
-      const overlap = getOverlap(cur.prev_lines, prev.prev_lines);
+      const overlap = getArrIntersection(cur.prev_lines, prev.prev_lines);
       if (overlap.length > 0) {
         cur.prev_lines = overlap;
       }
@@ -178,21 +172,61 @@ const getRoute = asyncWrapper(async (req, res) => {
     value.prev_lines = value.prev_lines.length > 0 ? value.prev_lines[0] : [];
   });
 
-  // Rename prev_lines to prev_line for simplicity for frontend
-  function renameKey(obj, key_name, new_key) {
-    if (obj.hasOwnProperty(key_name)) {
-      obj[new_key] = obj[key_name];
-      delete obj[key_name];
-    }
+  // Pop dummy last station
+  solution.pop();
 
-    return obj;
+  // Instead of prev_line use next_line. Move all prev_line back one entry
+  const station_list = [];
+  for (let i = 0; i < solution.length - 1; i++) {
+    station_list.push({
+      id: solution[i].cur_id,
+      next_line: solution[i + 1].prev_lines,
+    });
   }
-
-  const ret = solution.map((value) => {
-    return renameKey(value, "prev_lines", "prev_line");
+  station_list.push({
+    id: solution[solution.length - 1].cur_id,
+    next_line: null,
   });
 
-  res.status(StatusCodes.OK).json(ret);
+  // Convert route result into readable format (trip legs)
+  const trip_legs = [];
+
+  let cur_leg_start = station_list[0].id;
+  let cur_leg_line = station_list[0].next_line;
+  let leg_stops = 0;
+  for (let i = 1; i < solution.length; i++) {
+    const cur_station = station_list[i];
+    leg_stops++;
+
+    // If transfer track the leg
+    if (cur_station.next_line !== cur_leg_line) {
+      trip_legs.push({
+        start_id: cur_leg_start,
+        end_id: cur_station.id,
+        line_id: cur_leg_line,
+        stops: leg_stops,
+      });
+
+      // Update current leg variables
+      cur_leg_start = cur_station.id;
+      cur_leg_line = cur_station.next_line;
+      leg_stops = 0;
+    }
+  }
+
+  // Add direction of travel to trip legs
+  trip_legs.forEach((leg) => {
+    leg.towards_station_id = getDirectionStation(
+      { stationInfo, lineInfo },
+      leg.line_id,
+      leg.start_id,
+      leg.end_id
+    ).id;
+  });
+
+  res
+    .status(StatusCodes.OK)
+    .json({ station_list: station_list, trip_legs: trip_legs });
 });
 
 module.exports = { getInfo, getRoute };

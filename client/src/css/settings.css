@@ -29,11 +29,13 @@
 }
 
 select {
-  padding: 1px 5px;
+  padding: 1px 15px;
   height: 85%;
   background-color: var(--background-color);
   color: var(--opposite-color);
   border-radius: 5px;
   outline: none;
   border: none;
+  display: table;
+  table-layout: fixed;
 }

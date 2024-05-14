@@ -32,7 +32,10 @@
   color: var(--white);
 }
 
-.line-select-btn {
+.navbar-right {
+  display: inherit;
+  align-items: inherit;
+  height: inherit;
   margin-left: auto;
 }
 
