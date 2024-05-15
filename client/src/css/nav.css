@@ -47,6 +47,6 @@
   }
 
   .site-nav.mobile-hidden-nav {
-    --nav-height: 0;
+    visibility: hidden;
   }
 }

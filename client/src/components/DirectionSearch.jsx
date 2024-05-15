@@ -95,7 +95,9 @@ const DirectionSearch = forwardRef(
 
     return (
       <div
-        className="dropdown-content left-side directions-search-container"
+        className={`dropdown-content left-side directions-search-container ${
+          hideNavMobile ? "mobile-adjust" : ""
+        }`}
         ref={ref}
       >
         <MeasureWrapper
@@ -128,7 +130,7 @@ const DirectionSearch = forwardRef(
                 <SelectWithIcon
                   className={"directions-searchbar"}
                   icon={faLocationArrow}
-                  value={startQuery.label}
+                  value={startQuery}
                   options={options}
                   onChange={(option) => setStartQuery(option)}
                   key={`react-select-key${startQuery}`}
@@ -154,7 +156,7 @@ const DirectionSearch = forwardRef(
                 <SelectWithIcon
                   className={"directions-searchbar"}
                   icon={faMapPin}
-                  value={destQuery.label}
+                  value={destQuery}
                   options={options}
                   onChange={(option) => setDestQuery(option)}
                   key={`react-select-key${destQuery}`}
