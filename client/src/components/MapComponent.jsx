@@ -66,26 +66,7 @@ function MapComponent() {
 
     useEffect(() => {
       if (bounds) {
-        let adj_bounds = bounds;
-
-        const zoomout_factor = 0.5;
-        const panleft_amount = 0.7;
-        const panup_amount = 0.005;
-        const { _southWest, _northEast } = bounds;
-
-        const new_sw = L.latLng(
-          _southWest.lat +
-            panup_amount -
-            zoomout_factor * (_northEast.lat - _southWest.lat),
-          _southWest.lng - panleft_amount * (_northEast.lng - _southWest.lng)
-        );
-        const new_ne = L.latLng(
-          _northEast.lat + zoomout_factor * (_northEast.lat - _southWest.lat),
-          _northEast.lng
-        );
-        adj_bounds = L.latLngBounds(new_sw, new_ne);
-
-        map.fitBounds(adj_bounds);
+        map.fitBounds(bounds.pad(0.6));
 
         setBounds(null);
       }
@@ -281,6 +262,7 @@ function StationMarker({
   popup_refs,
   setShowMouseOverPopup,
   force_shown,
+  size,
 }) {
   const { language } = useContext(SettingsContext);
   const { lines, searchedStationId } = useContext(MetroContext);
@@ -293,7 +275,7 @@ function StationMarker({
   });
 
   // Map icon
-  const custom_icon = mapIcon(zoom, station);
+  const custom_icon = mapIcon(zoom, station, size);
 
   const shown = force_shown
     ? true
@@ -352,6 +334,7 @@ function RailwayPolyline({
   polyline_positions,
   handleMouseOver,
   force_shown,
+  weight,
 }) {
   const { language } = useContext(SettingsContext);
   const { geoHashmap } = useContext(MetroContext);
@@ -388,7 +371,7 @@ function RailwayPolyline({
         positions={positions}
         pathOptions={{
           color: "#000000",
-          weight: 5,
+          weight: weight || 5,
         }}
         eventHandlers={
           isMobile
@@ -416,8 +399,14 @@ function RailwayPolyline({
 }
 
 // Custom map icon which depends on zoom level
-function mapIcon(zoom, station) {
+function mapIcon(zoom, station, size) {
   const ENLARGE_ZOOM_LVL = 14.5;
+
+  const SIZE_VARS = {
+    "--map-icon-size": size,
+    "--map-icon-station-size": "calc(var(--map-icon-size) + 2px) !important",
+    "--map-icon-total-size": "calc(var(--map-icon-size) * 1.4) !important",
+  };
 
   const ZOOM_VARS = {
     "--map-icon-size": `${8 * (zoom - ENLARGE_ZOOM_LVL) + 24}px !important`,
@@ -425,7 +414,8 @@ function mapIcon(zoom, station) {
     "--map-icon-total-size": "calc(var(--map-icon-size) * 1.4) !important",
   };
 
-  const use_style = zoom >= ENLARGE_ZOOM_LVL ? ZOOM_VARS : {};
+  const use_style =
+    zoom >= ENLARGE_ZOOM_LVL ? ZOOM_VARS : size ? SIZE_VARS : {};
 
   const icon_markup = renderToStaticMarkup(
     <div className="map-icon-container" style={use_style}>
