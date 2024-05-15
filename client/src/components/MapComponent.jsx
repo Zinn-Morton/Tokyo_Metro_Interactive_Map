@@ -1,5 +1,5 @@
 // Basic stuff
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useRef, useContext } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { isMobile, isBrowser } from "react-device-detect";
 
@@ -12,8 +12,10 @@ import {
   Popup,
   Polyline,
   ZoomControl,
+  useMap,
+  FeatureGroup,
 } from "react-leaflet";
-import L from "leaflet";
+import L, { map } from "leaflet";
 import { divIcon } from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -31,6 +33,10 @@ import {
   getStationFromId,
 } from "../functions/metroLookupFuncs.jsx";
 
+// Constants
+const TOKYO_CENTER = [35.71, 139.75];
+const FIT_BOUNDS_LEFT_PADDING = 0.02;
+
 // Map
 function MapComponent() {
   const { language, enableMap, darkMode } = useContext(SettingsContext);
@@ -47,6 +53,47 @@ function MapComponent() {
   // Tracks zoom level for showing station indices
   const [zoom, setZoom] = useState(isMobile ? 11.5 : 12);
 
+  // Fit map to bounds when directions are shown
+  const directions_group_ref = useRef(null);
+  const [bounds, setBounds] = useState(null);
+  useEffect(() => {
+    if (directions_group_ref.current)
+      setBounds(directions_group_ref.current.getBounds());
+  }, [mapDirections]);
+
+  function FitBounds() {
+    const map = useMap();
+
+    useEffect(() => {
+      if (bounds) {
+        let adj_bounds = bounds;
+
+        const zoomout_factor = 0.5;
+        const panleft_amount = 0.7;
+        const panup_amount = 0.005;
+        const { _southWest, _northEast } = bounds;
+
+        const new_sw = L.latLng(
+          _southWest.lat +
+            panup_amount -
+            zoomout_factor * (_northEast.lat - _southWest.lat),
+          _southWest.lng - panleft_amount * (_northEast.lng - _southWest.lng)
+        );
+        const new_ne = L.latLng(
+          _northEast.lat + zoomout_factor * (_northEast.lat - _southWest.lat),
+          _northEast.lng
+        );
+        adj_bounds = L.latLngBounds(new_sw, new_ne);
+
+        map.fitBounds(adj_bounds);
+
+        setBounds(null);
+      }
+    }, [mapDirections, bounds]);
+
+    return null;
+  }
+
   // Rerender map tiles when darkmode changes
   const [tileKey, setTileKey] = useState(0);
   useEffect(() => {
@@ -57,7 +104,7 @@ function MapComponent() {
   const [showMouseOverPopup, setShowMouseOverPopup] = useState(false);
   const [mouseOverPopupImg, setMouseOverPopupImg] = useState("");
   const [mouseOverPopupName, setMouseOverPopupName] = useState("");
-  const [mouseOverPopupPos, setMouseOverPopupPos] = useState([35.71, 139.75]);
+  const [mouseOverPopupPos, setMouseOverPopupPos] = useState(TOKYO_CENTER);
 
   // Show popup
   function handleMouseOver(e, name, img) {
@@ -120,7 +167,7 @@ function MapComponent() {
         <MapContainer
           className="map"
           ref={map_ref}
-          center={isMobile ? [35.685, 139.75] : [35.71, 139.75]}
+          center={isMobile ? [35.685, 139.75] : TOKYO_CENTER}
           zoom={zoom}
           zoomControl={false}
           attributionControl={false}
@@ -128,6 +175,7 @@ function MapComponent() {
           zoomSnap={0.5}
         >
           <MapEvents />
+          <FitBounds />
 
           {/* Fetch info error message */}
           {fetchInfoError && <h1 className="error-msg">{fetchInfoError}</h1>}
@@ -148,7 +196,7 @@ function MapComponent() {
 
           {/* If directions are searched show them instead of regular map */}
           {Object.keys(mapDirections).length > 0 ? (
-            <>
+            <FeatureGroup ref={directions_group_ref}>
               {/* Station markers */}
               {mapDirections.station_list.map(({ id }) => {
                 return (
@@ -179,7 +227,7 @@ function MapComponent() {
                 );
               })}
               ;
-            </>
+            </FeatureGroup>
           ) : (
             <>
               {/* Maps stations into markers on the map */}
