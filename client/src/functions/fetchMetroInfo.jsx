@@ -8,6 +8,7 @@ async function fetchMetroInfo({
   setOperators,
   setFetchInfoError,
   clearRetryInterval,
+  setOperatorIdToName,
 }) {
   try {
     const response = await axios.get(`${BACKEND_URL}/api/v1/metroInfo/getInfo`);
@@ -17,6 +18,7 @@ async function fetchMetroInfo({
     setStations(response.data.stationInfo);
     setGeoHashmap(response.data.stationToCoords);
     setOperators(response.data.operators);
+    setOperatorIdToName(response.data.operatorIdToName);
 
     setFetchInfoError("");
 

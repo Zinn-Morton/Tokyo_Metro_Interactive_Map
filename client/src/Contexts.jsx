@@ -31,6 +31,7 @@ function ContextWrapper({ children }) {
   const [lines, setLines] = useState([]);
   const [geoHashmap, setGeoHashmap] = useState({});
   const [operators, setOperators] = useState([]);
+  const [operatorIdToName, setOperatorIdToName] = useState({});
   const [fetchInfoError, setFetchInfoError] = useState("");
 
   // Directions
@@ -91,6 +92,7 @@ function ContextWrapper({ children }) {
       setGeoHashmap: setGeoHashmap,
       setOperators: setOperators,
       setFetchInfoError: setFetchInfoError,
+      setOperatorIdToName: setOperatorIdToName,
       clearRetryInterval: clearRetryInterval,
     });
   }
@@ -217,6 +219,7 @@ function ContextWrapper({ children }) {
               toggleLineShownNextState: toggleLineShownNextState,
               showOnlyLines: showOnlyLines,
               geoHashmap: geoHashmap,
+              operatorIdToName: operatorIdToName,
               operators: operators,
               mapDirections: mapDirections,
               setMapDirections: setMapDirections,

@@ -45,6 +45,8 @@ const included_line_ids = new Set([
 
 // Caches a object mapping station id to coords
 
+// Caches an object where each key is an operator id and this key maps to info about the operator
+
 // For all stations/lines without a chinese or korean name, caches generated translations
 async function cacheMetroInfo() {
   // Get info about lines
@@ -65,16 +67,26 @@ async function cacheMetroInfo() {
     line_id_to_code,
   });
 
-  console.log("Fetched line and station info");
+  // Get info about operators
+  const operator_api_url = `https://api.odpt.org/api/v4/odpt:Operator?acl:consumerKey=${process.env.ODPT_TOKEN}`;
+
+  let operator_info = await getOperatorInfo(operator_api_url);
+
+  console.log("Fetched line, station, and operator info");
 
   // Generate and cache machine translations for stations/lines without a korean/chinese name
-  const [station_translate_info, line_translate_info] =
-    await generateAndCacheAllTranslations(unique_stations, line_info);
+  const [station_translate_info, line_translate_info, operator_translate_info] =
+    await generateAndCacheAllTranslations(
+      unique_stations,
+      line_info,
+      operator_info
+    );
 
   // Embed translations into unique_stations and line_info
   embedAllTranslations(
     { unique_stations, station_translate_info },
-    { line_info, line_translate_info }
+    { line_info, line_translate_info },
+    { operator_info, operator_translate_info }
   );
 
   // Generate and cache coordinates for stations
@@ -85,6 +97,12 @@ async function cacheMetroInfo() {
 
   // Create mapping of station id to coords
   const station_to_coords = mapStationToCoords(unique_stations, {});
+
+  // Convert operatorInfo into a hashmap for return
+  const operatorIdToName = {};
+  operator_info.forEach(({ id, name }) => {
+    operatorIdToName[id] = name;
+  });
 
   // Get list of operators
   const operators = getAllOperators(line_info);
@@ -98,6 +116,7 @@ async function cacheMetroInfo() {
     lineInfo: line_info,
     stationToCoords: station_to_coords,
     operators: operators,
+    operatorIdToName: operatorIdToName,
     adjList: adj_list,
   };
 
@@ -129,11 +148,18 @@ async function getLineInfo(line_api_urls) {
       },
       color: item["odpt:color"],
       code: item["odpt:lineCode"] || "no-code",
-      operator: item["odpt:operator"].split(":").pop(),
+      operator: item["odpt:operator"],
       stationOrder: item["odpt:stationOrder"].map((station) => {
+        const station_base_id = station["odpt:station"];
+        let station_id = station["odpt:station"].split(".").pop();
+
+        // Fix Asakusa / Hanzomon Oshiage double id
+        if (station_base_id === "odpt.Station:Toei.Asakusa.Oshiage")
+          station_id = "ToeiOshiage";
+
         return {
           index: station["odpt:index"],
-          station: station["odpt:station"].split(".").pop(),
+          station: station_id,
         };
       }),
       shown: true,
@@ -234,8 +260,13 @@ async function getStationInfo({
   // Extracts needed info from response_station
   const station_info = await Promise.all(
     response_station.map(async (item) => {
+      let id = item["owl:sameAs"];
+
+      // Fix Asakusa / Hanzomon Oshiage double id
+      if (id === "odpt.Station:Toei.Asakusa.Oshiage") id = "ToeiOshiage";
+
       const extracted_data = {
-        id: item["owl:sameAs"],
+        id: id,
         geo: {
           lat: item[`geo:lat`],
           long: item[`geo:long`],
@@ -322,6 +353,26 @@ async function getStationInfo({
   unique_stations = addMissingStations(unique_stations, line_id_to_code);
 
   return unique_stations;
+}
+
+// Helper function to fetch info about operators
+async function getOperatorInfo(operator_api_url) {
+  const response_operator = await axios.get(operator_api_url);
+
+  const operator_info = response_operator.data.map((item) => {
+    return {
+      id: item["owl:sameAs"],
+      name: {
+        en: item[`odpt:operatorTitle`].en,
+        ja: item[`odpt:operatorTitle`].ja,
+        ko: item[`odpt:operatorTitle`].ko,
+        "zh-Hans": item[`odpt:operatorTitle`][`zh-Hans`],
+        "zh-Hant": item[`odpt:operatorTitle`][`zh-Hant`],
+      },
+    };
+  });
+
+  return operator_info;
 }
 
 // Helper function to add manually created stations
@@ -461,37 +512,34 @@ async function generateAndCacheTranslations(data, cache_file_path) {
 }
 
 // Helper function to generate and cache needed station and railway translations
-async function generateAndCacheAllTranslations(unique_stations, line_info) {
-  let station_translate_info = await generateAndCacheTranslations(
+async function generateAndCacheAllTranslations(
+  unique_stations,
+  line_info,
+  operator_info
+) {
+  const station_translate_info = await generateAndCacheTranslations(
     unique_stations,
     process.env.STATION_TRANSLATE_CACHE_FILE_PATH
   );
 
-  let line_translate_info = await generateAndCacheTranslations(
+  const line_translate_info = await generateAndCacheTranslations(
     line_info,
     process.env.LINE_TRANSLATE_CACHE_FILE_PATH
   );
 
-  // Add machine learning translate notice (not cached, just for return)
-  // Not using for now
-  function markMLTranslate(translations) {
-    for (let translation in translations) {
-      translations[translation]["ko"] += " [기계 번역]";
-      translations[translation]["zh-Hans"] += " [机器翻译]";
-      translations[translation]["zh-Hant"] += " [機器翻譯]";
-    }
-  }
+  const operator_translate_info = await generateAndCacheTranslations(
+    operator_info,
+    process.env.OPERATOR_TRANSLATE_CACHE_FILE_PATH
+  );
 
-  // markMLTranslate(station_translate_info);
-  // markMLTranslate(line_translate_info);
-
-  return [station_translate_info, line_translate_info];
+  return [station_translate_info, line_translate_info, operator_translate_info];
 }
 
 // Helper function to embed translations into unique_stations and line_info where needed
 function embedAllTranslations(
   { unique_stations, station_translate_info },
-  { line_info, line_translate_info }
+  { line_info, line_translate_info },
+  { operator_info, operator_translate_info }
 ) {
   function embedTranslations(data, translations) {
     data = data.map((item) => {
@@ -509,6 +557,7 @@ function embedAllTranslations(
 
   embedTranslations(unique_stations, station_translate_info);
   embedTranslations(line_info, line_translate_info);
+  embedTranslations(operator_info, operator_translate_info);
 }
 
 // Helper function to generate cache needed geo coords for stations

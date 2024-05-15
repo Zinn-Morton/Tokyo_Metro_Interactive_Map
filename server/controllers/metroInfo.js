@@ -16,10 +16,17 @@ const { getArrIntersection } = require("../functions/arrFuncs.js");
 // Sends metro info to frontend
 const getInfo = asyncWrapper(async (req, res) => {
   // Get metro info from cache
-  const { stationInfo, lineInfo, stationToCoords, operators } =
-    await readFromCache(process.env.METRO_INFO_CACHE_FILE_PATH);
+  const metro_info = await readFromCache(
+    process.env.METRO_INFO_CACHE_FILE_PATH
+  );
 
-  const ret = { stationInfo, lineInfo, stationToCoords, operators };
+  const ret = ({
+    stationInfo,
+    lineInfo,
+    stationToCoords,
+    operatorIdToName,
+    operators,
+  } = metro_info);
 
   // Send to frontend
   res.status(StatusCodes.OK).json(ret);

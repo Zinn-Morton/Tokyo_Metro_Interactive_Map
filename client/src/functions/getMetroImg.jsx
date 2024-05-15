@@ -18,7 +18,7 @@ function getLineImg(code) {
 }
 
 function getOperatorImg(operator) {
-  return `/metro_img/operator_symbol/${operator}.png`;
+  return `/metro_img/operator_symbol/${operator.split(":").pop()}.png`;
 }
 
 export { getStationImg, getLineImg, getOperatorImg };

@@ -27,8 +27,13 @@ import { getChosenLineIds } from "../functions/getChosenLineIds.jsx";
 const LineSelector = forwardRef(({ linesDropdown }, ref) => {
   const { language } = useContext(SettingsContext);
   const translations = useContext(TranslationContext);
-  const { lines, setLinesUpdateStation, toggleLineShownNextState, operators } =
-    useContext(MetroContext);
+  const {
+    lines,
+    setLinesUpdateStation,
+    toggleLineShownNextState,
+    operatorIdToName,
+    operators,
+  } = useContext(MetroContext);
 
   // State of each operator toggle (selected/unselected)
   const [operatorToggles, setOperatorToggles] = useState({});
@@ -98,7 +103,7 @@ const LineSelector = forwardRef(({ linesDropdown }, ref) => {
   }
 
   // Toggles show/hide for all lines for an operator
-  function toggleOperatorLines(operator, show) {
+  function toggleOperatorLines(operator) {
     let updated_lines = [...lines];
 
     updated_lines.forEach((line) => {
@@ -162,7 +167,7 @@ const LineSelector = forwardRef(({ linesDropdown }, ref) => {
                         alt=""
                       />
                     }
-                    p_text={operator}
+                    p_text={operatorIdToName[operator][language]}
                   />
                   {/* Line for each line */}
                   {lines.map((line) => {
