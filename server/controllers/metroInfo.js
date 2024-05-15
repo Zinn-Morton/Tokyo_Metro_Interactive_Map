@@ -188,7 +188,9 @@ const getRoute = asyncWrapper(async (req, res) => {
     next_line: null,
   });
 
-  // Convert route result into readable format (trip legs)
+  // Convert route result into readable formats
+
+  // Trip legs
   const trip_legs = [];
 
   let cur_leg_start = station_list[0].id;
@@ -224,9 +226,42 @@ const getRoute = asyncWrapper(async (req, res) => {
     ).id;
   });
 
-  res
-    .status(StatusCodes.OK)
-    .json({ station_list: station_list, trip_legs: trip_legs });
+  // Polylines
+  cur_leg_line = station_list[0].next_line;
+
+  const polylines = [{ line_id: cur_leg_line, station_order: [] }];
+
+  for (let i = 0; i < solution.length; i++) {
+    const cur_station = station_list[i];
+
+    polylines[polylines.length - 1].station_order.push(cur_station.id);
+
+    // If transfer make new polyline
+    if (cur_station.next_line && cur_station.next_line !== cur_leg_line) {
+      polylines.push({
+        line_id: cur_station.next_line,
+        station_order: [cur_station.id],
+      });
+
+      cur_leg_line = cur_station.next_line;
+    }
+  }
+
+  // Add direction of travel to trip legs
+  trip_legs.forEach((leg) => {
+    leg.towards_station_id = getDirectionStation(
+      { stationInfo, lineInfo },
+      leg.line_id,
+      leg.start_id,
+      leg.end_id
+    ).id;
+  });
+
+  res.status(StatusCodes.OK).json({
+    station_list: station_list,
+    trip_legs: trip_legs,
+    polylines: polylines,
+  });
 });
 
 module.exports = { getInfo, getRoute };

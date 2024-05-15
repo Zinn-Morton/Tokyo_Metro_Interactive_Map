@@ -9,7 +9,7 @@
   background-color: var(--compliment-color);
   width: 100%;
   height: var(--nav-height);
-  display: flex;
+  display: flex !important;
   align-items: center;
   border-bottom: var(--nav-border-width) solid var(--black);
 }
@@ -44,5 +44,9 @@
   /* Make nav bigger */
   :root {
     --nav-height: var(--nav-height-mobile);
+  }
+
+  .site-nav.mobile-hidden-nav {
+    --nav-height: 0;
   }
 }

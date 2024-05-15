@@ -26,6 +26,11 @@ const SearchbarWithIcon = forwardRef(
 const SelectWithIcon = forwardRef(
   ({ icon, value, options, onChange, className, autoFocus }, select_ref) => {
     const customStyles = {
+      container: (provided) => ({
+        ...provided,
+        width: "calc(100% - var(--metro-img-size))",
+      }),
+
       control: (provided, state) => ({
         ...provided,
         background: "var(--background-color)",
@@ -34,6 +39,7 @@ const SelectWithIcon = forwardRef(
         height: "var(--search-height)",
         minHeight: "var(--search-height)",
         boxShadow: state.isFocused ? null : null,
+        width: "100%",
       }),
 
       valueContainer: (provided, state) => ({
@@ -47,6 +53,7 @@ const SelectWithIcon = forwardRef(
         ...provided,
         margin: "0px",
         color: "var(--opposite-color)",
+        width: "calc(100% - var(--metro-img-size))",
       }),
 
       indicatorSeparator: (state) => ({
@@ -73,6 +80,7 @@ const SelectWithIcon = forwardRef(
       singleValue: (provided) => ({
         ...provided,
         color: "var(--opposite-color)",
+        position: "relative",
       }),
     };
 

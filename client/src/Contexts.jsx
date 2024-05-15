@@ -33,6 +33,9 @@ function ContextWrapper({ children }) {
   const [operators, setOperators] = useState([]);
   const [fetchInfoError, setFetchInfoError] = useState("");
 
+  // Directions
+  const [mapDirections, setMapDirections] = useState([]);
+
   // User search
   const [searchedStationId, setSearchedStationId] = useState(null);
 
@@ -183,8 +186,6 @@ function ContextWrapper({ children }) {
     popup_ref.openOn(map_ref.current);
   }
 
-  useEffect(() => {}, [stations]);
-
   return (
     <SettingsContext.Provider
       value={{
@@ -217,6 +218,8 @@ function ContextWrapper({ children }) {
               showOnlyLines: showOnlyLines,
               geoHashmap: geoHashmap,
               operators: operators,
+              mapDirections: mapDirections,
+              setMapDirections: setMapDirections,
               searchedStationId: searchedStationId,
               setSearchedStationId: setSearchedStationId,
               fetchInfoError: fetchInfoError,

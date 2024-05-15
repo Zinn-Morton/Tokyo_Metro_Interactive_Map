@@ -2,7 +2,6 @@
 import { useContext } from "react";
 
 // CSS
-import "./css/index.css";
 import "./css/nav.css";
 import "./css/map.css";
 import "./css/popup.css";
@@ -11,6 +10,7 @@ import "./css/settings.css";
 import "./css/line-select.css";
 import "./css/search.css";
 import "./css/direction-search.css";
+import "./css/index.css";
 
 // Contexts
 // Context wrapper - Fetches and prepares all data into contexts

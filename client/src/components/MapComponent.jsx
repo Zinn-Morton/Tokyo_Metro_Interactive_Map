@@ -26,6 +26,10 @@ import { SettingsContext, MapContext, MetroContext } from "../Contexts.jsx";
 
 // My functions
 import { getStationImg, getLineImg } from "../functions/getMetroImg.jsx";
+import {
+  getLineFromId,
+  getStationFromId,
+} from "../functions/metroLookupFuncs.jsx";
 
 // Map
 function MapComponent() {
@@ -35,7 +39,7 @@ function MapComponent() {
     stations,
     lines,
     geoHashmap,
-    searchedStationId,
+    mapDirections,
     setSearchedStationId,
     fetchInfoError,
   } = useContext(MetroContext);
@@ -109,13 +113,6 @@ function MapComponent() {
     return null;
   }
 
-  // Invisible icon
-  const invis_icon = new L.icon({
-    iconUrl:
-      "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
-    iconSize: [1, 1], // Set a very small icon size
-  });
-
   return (
     <>
       {/* Div to color background if map is disabled */}
@@ -149,124 +146,67 @@ function MapComponent() {
 
           <ZoomControl position="bottomleft" />
 
-          {/* Maps stations into markers on the map */}
-          {stations &&
-            stations.map((station) => {
-              // Map icon
-              const custom_icon = mapIcon(zoom, station);
+          {/* If directions are searched show them instead of regular map */}
+          {Object.keys(mapDirections).length > 0 ? (
+            <>
+              {/* Station markers */}
+              {mapDirections.station_list.map(({ id }) => {
+                return (
+                  <StationMarker
+                    station={getStationFromId(id)}
+                    zoom={zoom}
+                    popup_refs={popup_refs}
+                    setShowMouseOverPopup={setShowMouseOverPopup}
+                    force_shown={true}
+                  />
+                );
+              })}
+              {/* Line polylines */}
+              {mapDirections.polylines.map(({ line_id, station_order }) => {
+                const positions = station_order.map((station_id) => {
+                  return geoHashmap[station_id];
+                });
 
-              const shown = station.shown || station.id === searchedStationId;
+                const line = getLineFromId(line_id);
 
-              const code = station.railways[0].code;
-              const index = station.railways[0].index;
-              return (
-                <Marker
-                  opacity={shown ? 100 : 0}
-                  position={[station.geo.lat, station.geo.long]}
-                  width="30px"
-                  height="30px"
-                  icon={shown ? custom_icon : invis_icon}
-                  riseOnHover={true}
-                  eventHandlers={{
-                    click: () => {
-                      setShowMouseOverPopup(false);
-                    },
-                  }}
-                >
-                  <Popup
-                    ref={(el) => {
-                      popup_refs.current[station.id] = el;
-                    }}
-                  >
-                    <div className="popup-data">
-                      <h3>{station.name[language]}</h3>
-                      <div className="line-imgs">
-                        {station.railways.map((railway) => {
-                          return (
-                            <div className="map-popup-line">
-                              <img
-                                src={getStationImg(railway.code, railway.index)}
-                              ></img>
-                              <h3>
-                                {
-                                  lines.find((line) => line.id === railway.id)
-                                    .name[language]
-                                }{" "}
-                                {railway.index}
-                              </h3>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </Popup>
-                </Marker>
-              );
-            })}
-
-          {/* Draws lines between markers for each metro line */}
-          {lines &&
-            lines.map((line) => {
-              if (!line.shown) {
-                return null;
-              }
-
-              const positions = line.stationOrder.map((station) => {
-                return geoHashmap[station.station];
-              });
-
-              return (
-                <>
-                  {/* Invisible to make mobile click easier */}
-                  {isMobile && (
-                    <Polyline
-                      positions={positions}
-                      pathOptions={{
-                        color: "#000000",
-                        weight: 25,
-                        opacity: 0,
-                      }}
-                      eventHandlers={{
-                        click: (e) =>
-                          handleMouseOver(
-                            e,
-                            line.name[language],
-                            getLineImg(line.code)
-                          ),
-                      }}
+                return (
+                  <RailwayPolyline
+                    line={line}
+                    polyline_positions={positions}
+                    handleMouseOver={handleMouseOver}
+                    force_shown={true}
+                  />
+                );
+              })}
+              ;
+            </>
+          ) : (
+            <>
+              {/* Maps stations into markers on the map */}
+              {stations &&
+                stations.map((station) => {
+                  return (
+                    <StationMarker
+                      station={station}
+                      zoom={zoom}
+                      popup_refs={popup_refs}
+                      setShowMouseOverPopup={setShowMouseOverPopup}
                     />
-                  )}
-                  {/* Outline */}
-                  <Polyline
-                    positions={positions}
-                    pathOptions={{
-                      color: "#000000",
-                      weight: 5,
-                    }}
-                    eventHandlers={
-                      isMobile
-                        ? {}
-                        : {
-                            mouseover: (e) =>
-                              handleMouseOver(
-                                e,
-                                line.name[language],
-                                getLineImg(line.code)
-                              ),
-                          }
-                    }
-                  />
-                  {/* The line itself */}
-                  <Polyline
-                    positions={positions}
-                    pathOptions={{
-                      color: line.color,
-                      weight: 3,
-                    }}
-                  />
-                </>
-              );
-            })}
+                  );
+                })}
+
+              {/* Draws lines between markers for each metro line */}
+              {lines &&
+                lines.map((line) => {
+                  return (
+                    <RailwayPolyline
+                      line={line}
+                      handleMouseOver={handleMouseOver}
+                    />
+                  );
+                })}
+            </>
+          )}
 
           {/* Hover over line to show line name */}
           {showMouseOverPopup && (
@@ -282,6 +222,147 @@ function MapComponent() {
           )}
         </MapContainer>
       </div>
+    </>
+  );
+}
+
+// Station marker for map
+function StationMarker({
+  station,
+  zoom,
+  popup_refs,
+  setShowMouseOverPopup,
+  force_shown,
+}) {
+  const { language } = useContext(SettingsContext);
+  const { lines, searchedStationId } = useContext(MetroContext);
+
+  // Invisible icon
+  const invis_icon = new L.icon({
+    iconUrl:
+      "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
+    iconSize: [1, 1], // Set a very small icon size
+  });
+
+  // Map icon
+  const custom_icon = mapIcon(zoom, station);
+
+  const shown = force_shown
+    ? true
+    : station.shown || station.id === searchedStationId;
+
+  const code = station.railways[0].code;
+  const index = station.railways[0].index;
+
+  return (
+    <Marker
+      opacity={shown ? 100 : 0}
+      position={[station.geo.lat, station.geo.long]}
+      width="30px"
+      height="30px"
+      icon={shown ? custom_icon : invis_icon}
+      riseOnHover={true}
+      eventHandlers={{
+        click: () => {
+          setShowMouseOverPopup(false);
+        },
+      }}
+    >
+      <Popup
+        ref={(el) => {
+          popup_refs.current[station.id] = el;
+        }}
+      >
+        <div className="popup-data">
+          <h3>{station.name[language]}</h3>
+          <div className="line-imgs">
+            {station.railways.map((railway) => {
+              return (
+                <div className="map-popup-line">
+                  <img src={getStationImg(railway.code, railway.index)}></img>
+                  <h3>
+                    {
+                      lines.find((line) => line.id === railway.id).name[
+                        language
+                      ]
+                    }{" "}
+                    {railway.index}
+                  </h3>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </Popup>
+    </Marker>
+  );
+}
+
+// Rail line polyline for map
+function RailwayPolyline({
+  line,
+  polyline_positions,
+  handleMouseOver,
+  force_shown,
+}) {
+  const { language } = useContext(SettingsContext);
+  const { geoHashmap } = useContext(MetroContext);
+
+  if (!force_shown && !line.shown) {
+    return null;
+  }
+
+  const positions =
+    polyline_positions ||
+    line.stationOrder.map((station) => {
+      return geoHashmap[station.station];
+    });
+
+  return (
+    <>
+      {/* Invisible to make mobile click easier */}
+      {isMobile && (
+        <Polyline
+          positions={positions}
+          pathOptions={{
+            color: "#000000",
+            weight: 25,
+            opacity: 0,
+          }}
+          eventHandlers={{
+            click: (e) =>
+              handleMouseOver(e, line.name[language], getLineImg(line.code)),
+          }}
+        />
+      )}
+      {/* Outline */}
+      <Polyline
+        positions={positions}
+        pathOptions={{
+          color: "#000000",
+          weight: 5,
+        }}
+        eventHandlers={
+          isMobile
+            ? {}
+            : {
+                mouseover: (e) =>
+                  handleMouseOver(
+                    e,
+                    line.name[language],
+                    getLineImg(line.code)
+                  ),
+              }
+        }
+      />
+      {/* The line itself */}
+      <Polyline
+        positions={positions}
+        pathOptions={{
+          color: line.color,
+          weight: 3,
+        }}
+      />
     </>
   );
 }

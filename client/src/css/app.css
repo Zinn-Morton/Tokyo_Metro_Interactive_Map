@@ -99,3 +99,11 @@
 .rcs-inner-container > div {
   margin-right: 0 !important;
 }
+
+/* Mobile */
+@media screen and (max-aspect-ratio: 3/4) {
+  /* Elements to be hidden on mobile */
+  .mobile-hidden {
+    display: none !important;
+  }
+}

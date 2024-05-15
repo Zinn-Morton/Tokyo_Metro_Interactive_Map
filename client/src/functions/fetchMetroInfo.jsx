@@ -24,6 +24,7 @@ async function fetchMetroInfo({
 
     return true;
   } catch (err) {
+    console.log(err);
     setFetchInfoError("Error Fetching Metro Info");
 
     return false;

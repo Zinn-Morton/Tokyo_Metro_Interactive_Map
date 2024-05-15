@@ -16,7 +16,7 @@ function DynamicCustomScroll({ className, maxHeight, children }) {
     return () => {
       window.removeEventListener("resize", handleResize);
     };
-  });
+  }, []);
 
   return (
     <div

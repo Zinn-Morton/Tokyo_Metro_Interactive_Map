@@ -1,5 +1,5 @@
 // Basic stuff
-import { useState, useRef, useContext } from "react";
+import { useState, useEffect, useRef, useContext } from "react";
 
 // Fontawesome
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -13,7 +13,7 @@ import {
 import { faMap } from "@fortawesome/free-regular-svg-icons";
 
 // Contexts
-import { SettingsContext } from "../Contexts.jsx";
+import { MetroContext, SettingsContext } from "../Contexts.jsx";
 
 // My components
 import { SettingsDropdown } from "./SettingsDropdown.jsx";
@@ -27,12 +27,14 @@ import { useClickOutside } from "../hooks/useClickOutside.jsx";
 
 // Navbar at top
 function NavComponent() {
+  const { setMapDirections } = useContext(MetroContext);
   const { toggleDarkMode, toggleMap } = useContext(SettingsContext);
 
   // Popup toggle
   const [infoPopup, setInfoPopup] = useState(false);
 
   // Dropdown toggles
+  const [hideNavMobile, setHideNavMobile] = useState(false);
   const [settingsDropdown, setSettingsDropdown] = useState(false);
   const [linesDropdown, setLinesDropdown] = useState(false);
   const [searchDropdown, setSearchDropdown] = useState(false);
@@ -52,10 +54,21 @@ function NavComponent() {
   const popup_btn_ref = useRef(null);
   const popup_ref = useRef(null);
 
+  // Set directionDropdown and set related states accordingly
+  function setDirectionDropdownStates(show) {
+    setDirectionDropdown(show);
+    setMapDirections({});
+  }
+
+  // Ensure nav is reshown when directionDropdown hides
+  useEffect(() => {
+    if (!directionDropdown) setHideNavMobile(false);
+  }, [directionDropdown]);
+
   // Dropdown toggle handler
   function toggleDropdown(dropdown, setDropdown) {
     setDropdown(!dropdown);
-    setDirectionDropdown(false);
+    setDirectionDropdownStates(false);
   }
 
   // Closes dropdowns / popups when clicked outside of
@@ -91,7 +104,7 @@ function NavComponent() {
 
   return (
     <>
-      <nav className="site-nav">
+      <nav className={`site-nav ${hideNavMobile ? "mobile-hidden-nav" : ""}`}>
         {/* Metro lines selector */}
         <div className="line-select-btn dropdown">
           <FontAwesomeIcon
@@ -125,12 +138,13 @@ function NavComponent() {
             icon={faRoute}
             className="nav-icon nav-search button"
             ref={direction_dropdown_btn_ref}
-            onClick={() => setDirectionDropdown(!directionDropdown)}
+            onClick={() => setDirectionDropdownStates(!directionDropdown)}
           ></FontAwesomeIcon>
           {directionDropdown && (
             <DirectionSearch
-              directionDropdown={directionDropdown}
               ref={direction_dropdown_ref}
+              hideNavMobile={hideNavMobile}
+              setHideNavMobile={setHideNavMobile}
             />
           )}
         </div>
